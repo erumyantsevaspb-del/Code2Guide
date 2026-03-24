@@ -1,0 +1,500 @@
+<div id="createProjectModal" class="fixed inset-0 z-50 hidden" style="display: none;">
+    <!-- Overlay -->
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="modalOverlay"></div>
+
+    <!-- Modal Container -->
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <!-- Header -->
+            <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-xl z-10">
+                <h2 class="text-2xl font-bold text-[#1F2937]">Создание нового проекта</h2>
+                <button id="closeModalBtn" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Form -->
+            <form id="createProjectForm" class="p-6 space-y-6">
+                {% csrf_token %}
+
+                <!-- Название проекта -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                        Название проекта <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="projectName" name="name"
+                        placeholder="Например, CRM-система для интернет-магазина"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-colors">
+                    <div id="projectNameError" class="hidden flex items-center gap-2 mt-1 text-red-600 text-sm">
+                        <i class="fas fa-exclamation-circle text-sm"></i>
+                        <span>Название проекта обязательно для заполнения</span>
+                    </div>
+                    <p class="text-sm text-gray-500">Введите понятное название, чтобы легко ориентироваться в списке проектов</p>
+                </div>
+
+                <!-- URL репозитория -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                        URL репозитория <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <i class="fab fa-github text-xl"></i>
+                        </div>
+                        <input type="text" id="repoUrl" name="repo_url"
+                            placeholder="https://github.com/компания/проект"
+                            class="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-colors">
+                    </div>
+                    <div id="repoUrlError" class="hidden flex items-center gap-2 mt-1 text-red-600 text-sm">
+                        <i class="fas fa-exclamation-circle text-sm"></i>
+                        <span>Укажите корректный URL репозитория GitHub</span>
+                    </div>
+                    <p class="text-sm text-gray-500">Поддерживаются GitHub (публичные и приватные репозитории)</p>
+                </div>
+
+                <!-- Ветка -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Ветка для мониторинга</label>
+                    <select id="branch" name="branch" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-colors">
+                        <option value="main">main</option>
+                        <option value="master">master</option>
+                        <option value="develop">develop</option>
+                        <option value="staging">staging</option>
+                    </select>
+                    <p class="text-sm text-gray-500">При пушах в эту ветку будет запускаться генерация документации</p>
+                </div>
+
+                <!-- Дополнительные настройки -->
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <button type="button" id="toggleAdvancedBtn" class="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 flex items-center justify-between transition-colors">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-sliders-h text-gray-600"></i>
+                            <span class="font-medium text-gray-700">Дополнительные настройки</span>
+                        </div>
+                        <i id="advancedIcon" class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+                    </button>
+
+                    <div id="advancedPanel" class="hidden p-4 space-y-4 bg-white border-t border-gray-200">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="autoGenerate" name="auto_generate" checked class="mt-1 w-4 h-4 text-[#2563EB] border-gray-300 rounded focus:ring-[#2563EB]">
+                            <div>
+                                <span class="text-sm font-medium text-gray-700">Включить автоматическую генерацию при каждом пуше</span>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="notifications" name="notifications" class="mt-1 w-4 h-4 text-[#2563EB] border-gray-300 rounded focus:ring-[#2563EB]">
+                            <div class="flex-1">
+                                <span class="text-sm font-medium text-gray-700">Отправлять уведомления в Telegram/Slack</span>
+                            </div>
+                        </label>
+
+                        <div id="webhookField" class="hidden ml-7">
+                            <input type="url" id="webhookUrl" name="webhook_url"
+                                placeholder="https://hooks.slack.com/services/..."
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-colors">
+                            <div id="webhookError" class="hidden flex items-center gap-2 mt-1 text-red-600 text-sm">
+                                <i class="fas fa-exclamation-circle text-sm"></i>
+                                <span>Укажите webhook URL для уведомлений</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Загрузка логотипа -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Логотип компании</label>
+                    <div id="logoDropzone" class="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-gray-400 bg-gray-50">
+                        <input type="file" id="logoFile" name="logo" accept="image/png,image/jpeg" class="hidden">
+                        <div id="logoPlaceholder" class="space-y-2">
+                            <div class="flex justify-center">
+                                <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-upload text-gray-500 text-2xl"></i>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600">Перетащите логотип сюда или нажмите для выбора</p>
+                        </div>
+                        <div id="logoPreview" class="hidden relative inline-block">
+                            <img id="logoPreviewImg" src="" alt="Logo preview" class="max-w-full max-h-24 rounded">
+                            <button type="button" id="removeLogoBtn" class="absolute -top-2 -right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="logoError" class="hidden flex items-center gap-2 mt-1 text-red-600 text-sm">
+                        <i class="fas fa-exclamation-circle text-sm"></i>
+                        <span>Ошибка загрузки логотипа</span>
+                    </div>
+                    <p class="text-sm text-gray-500">PNG, JPEG, до 2 МБ. Логотип будет отображаться в шапке документов</p>
+                </div>
+
+                <!-- Информация о тарифе -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-info-circle text-blue-600 text-lg mt-0.5"></i>
+                        <div class="space-y-1">
+                            <p class="text-sm font-medium text-blue-900">Ваш текущий тариф: <span class="font-bold">Starter</span> (1 проект)</p>
+                            <p class="text-sm text-blue-800">После создания проекта у вас останется <span class="font-semibold">0 доступных проектов</span>. Для добавления еще проектов перейдите на тариф Business.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Кнопки действий -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                    <button type="button" id="cancelModalBtn" class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                        Отмена
+                    </button>
+                    <button type="submit" id="submitProjectBtn" class="px-5 py-2.5 bg-[#2563EB] text-white rounded-lg hover:bg-[#1d4ed8] transition-colors font-medium flex items-center gap-2 min-w-[160px] justify-center">
+                        <span>Создать проект</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Стили для модального окна */
+    #createProjectModal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 9999;
+    }
+
+    #createProjectModal.hidden {
+        display: none !important;
+    }
+
+    #createProjectModal:not(.hidden) {
+        display: flex !important;
+    }
+
+    /* Анимация появления */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes zoomIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    #createProjectModal .fixed.inset-0.bg-black\/50 {
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    #createProjectModal .relative.bg-white {
+        animation: zoomIn 0.2s ease-out;
+    }
+</style>
+
+<script>
+// Глобальная функция открытия модального окна
+window.openCreateProjectModal = function() {
+    console.log('openCreateProjectModal вызвана');
+    const modal = document.getElementById('createProjectModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        console.log('Модальное окно открыто');
+    } else {
+        console.error('Модальное окно не найдено!');
+        alert('Ошибка: модальное окно не найдено');
+    }
+};
+
+// Функция закрытия (доступна глобально для отладки)
+window.closeCreateProjectModal = function() {
+    const modal = document.getElementById('createProjectModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM загружен, инициализация модального окна');
+
+    const modal = document.getElementById('createProjectModal');
+    const form = document.getElementById('createProjectForm');
+    const projectNameInput = document.getElementById('projectName');
+    const repoUrlInput = document.getElementById('repoUrl');
+    const toggleAdvancedBtn = document.getElementById('toggleAdvancedBtn');
+    const advancedPanel = document.getElementById('advancedPanel');
+    const advancedIcon = document.getElementById('advancedIcon');
+    const notificationsCheckbox = document.getElementById('notifications');
+    const webhookField = document.getElementById('webhookField');
+    const logoDropzone = document.getElementById('logoDropzone');
+    const logoFile = document.getElementById('logoFile');
+    const logoPlaceholder = document.getElementById('logoPlaceholder');
+    const logoPreview = document.getElementById('logoPreview');
+    const logoPreviewImg = document.getElementById('logoPreviewImg');
+    const removeLogoBtn = document.getElementById('removeLogoBtn');
+    const submitBtn = document.getElementById('submitProjectBtn');
+
+    if (!modal) {
+        console.error('Модальное окно не найдено в DOM!');
+        return;
+    }
+
+    console.log('Модальное окно найдено, инициализация обработчиков');
+
+    let isSubmitting = false;
+
+    function closeModal() {
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+            resetForm();
+        }
+    }
+
+    function resetForm() {
+        if (form) form.reset();
+        if (projectNameInput) projectNameInput.classList.remove('border-red-500');
+        if (repoUrlInput) repoUrlInput.classList.remove('border-red-500');
+
+        const nameError = document.getElementById('projectNameError');
+        const repoError = document.getElementById('repoUrlError');
+        const webhookError = document.getElementById('webhookError');
+
+        if (nameError) nameError.classList.add('hidden');
+        if (repoError) repoError.classList.add('hidden');
+        if (webhookError) webhookError.classList.add('hidden');
+
+        if (advancedPanel) advancedPanel.classList.add('hidden');
+        if (advancedIcon) advancedIcon.style.transform = 'rotate(0deg)';
+
+        if (webhookField) webhookField.classList.add('hidden');
+        if (notificationsCheckbox) notificationsCheckbox.checked = false;
+
+        if (logoPlaceholder) logoPlaceholder.classList.remove('hidden');
+        if (logoPreview) logoPreview.classList.add('hidden');
+        if (logoPreviewImg) logoPreviewImg.src = '';
+
+        isSubmitting = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>Создать проект</span>';
+        }
+    }
+
+    function validateForm() {
+        let isValid = true;
+
+        if (!projectNameInput.value.trim()) {
+            projectNameInput.classList.add('border-red-500');
+            document.getElementById('projectNameError').classList.remove('hidden');
+            isValid = false;
+        } else {
+            projectNameInput.classList.remove('border-red-500');
+            document.getElementById('projectNameError').classList.add('hidden');
+        }
+
+        const repoUrl = repoUrlInput.value.trim();
+        const githubPattern = /^https:\/\/github\.com\/[\w-]+\/[\w-]+$/;
+        if (!repoUrl) {
+            repoUrlInput.classList.add('border-red-500');
+            document.getElementById('repoUrlError').classList.remove('hidden');
+            document.getElementById('repoUrlError').querySelector('span').textContent = 'Укажите URL репозитория';
+            isValid = false;
+        } else if (!githubPattern.test(repoUrl)) {
+            repoUrlInput.classList.add('border-red-500');
+            document.getElementById('repoUrlError').classList.remove('hidden');
+            document.getElementById('repoUrlError').querySelector('span').textContent = 'Укажите корректный URL репозитория GitHub';
+            isValid = false;
+        } else {
+            repoUrlInput.classList.remove('border-red-500');
+            document.getElementById('repoUrlError').classList.add('hidden');
+        }
+
+        if (notificationsCheckbox.checked && !document.getElementById('webhookUrl').value.trim()) {
+            document.getElementById('webhookError').classList.remove('hidden');
+            isValid = false;
+        } else {
+            document.getElementById('webhookError').classList.add('hidden');
+        }
+
+        return isValid;
+    }
+
+    if (form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!validateForm()) return;
+            if (isSubmitting) return;
+
+            isSubmitting = true;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Создаем...</span>';
+
+            const formData = new FormData();
+            formData.append('name', projectNameInput.value);
+            formData.append('repo_url', repoUrlInput.value);
+            formData.append('branch', document.getElementById('branch').value);
+            formData.append('auto_generate', document.getElementById('autoGenerate').checked ? 'on' : 'off');
+            formData.append('notifications', notificationsCheckbox.checked ? 'on' : 'off');
+            formData.append('webhook_url', document.getElementById('webhookUrl').value);
+
+            const logoFileInput = document.getElementById('logoFile');
+            if (logoFileInput.files[0]) {
+                formData.append('logo', logoFileInput.files[0]);
+            }
+
+            try {
+                const response = await fetch('/api/projects/create/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    closeModal();
+                    location.reload();
+                } else {
+                    alert(data.error || 'Ошибка создания проекта');
+                    isSubmitting = false;
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<span>Создать проект</span>';
+                }
+            } catch (error) {
+                alert('Ошибка соединения');
+                isSubmitting = false;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>Создать проект</span>';
+            }
+        });
+    }
+
+    // Toggle advanced settings
+    if (toggleAdvancedBtn) {
+        toggleAdvancedBtn.addEventListener('click', function() {
+            advancedPanel.classList.toggle('hidden');
+            if (advancedIcon) {
+                if (advancedPanel.classList.contains('hidden')) {
+                    advancedIcon.style.transform = 'rotate(0deg)';
+                } else {
+                    advancedIcon.style.transform = 'rotate(180deg)';
+                }
+            }
+        });
+    }
+
+    // Toggle webhook field
+    if (notificationsCheckbox) {
+        notificationsCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                webhookField.classList.remove('hidden');
+            } else {
+                webhookField.classList.add('hidden');
+            }
+        });
+    }
+
+    // Logo upload
+    if (logoDropzone) {
+        logoDropzone.addEventListener('click', function() {
+            logoFile.click();
+        });
+    }
+
+    if (logoFile) {
+        logoFile.addEventListener('change', function(e) {
+            if (e.target.files[0]) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+    }
+
+    function handleFileSelect(file) {
+        if (file.size > 2 * 1024 * 1024) {
+            document.getElementById('logoError').querySelector('span').textContent = 'Файл слишком большой. Максимум 2 МБ';
+            document.getElementById('logoError').classList.remove('hidden');
+            return;
+        }
+
+        if (!['image/png', 'image/jpeg'].includes(file.type)) {
+            document.getElementById('logoError').querySelector('span').textContent = 'Поддерживаются только PNG и JPEG';
+            document.getElementById('logoError').classList.remove('hidden');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            logoPreviewImg.src = e.target.result;
+            logoPlaceholder.classList.add('hidden');
+            logoPreview.classList.remove('hidden');
+            document.getElementById('logoError').classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    if (removeLogoBtn) {
+        removeLogoBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            logoFile.value = '';
+            logoPlaceholder.classList.remove('hidden');
+            logoPreview.classList.add('hidden');
+            logoPreviewImg.src = '';
+        });
+    }
+
+    // Drag and drop
+    if (logoDropzone) {
+        logoDropzone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            logoDropzone.classList.add('border-[#2563EB]', 'bg-blue-50');
+        });
+
+        logoDropzone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            logoDropzone.classList.remove('border-[#2563EB]', 'bg-blue-50');
+        });
+
+        logoDropzone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            logoDropzone.classList.remove('border-[#2563EB]', 'bg-blue-50');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                handleFileSelect(file);
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                logoFile.files = dt.files;
+            }
+        });
+    }
+
+    // Close modal events
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelModalBtn = document.getElementById('cancelModalBtn');
+    const modalOverlay = document.getElementById('modalOverlay');
+
+    if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+    if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
+    if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
+
+    // Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+});
+</script>
