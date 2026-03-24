@@ -1,0 +1,31 @@
+<div class="bg-white rounded-lg border-2 border-red-600 p-6">
+    <h2 class="text-xl font-semibold text-red-600 mb-4">Удаление аккаунта</h2>
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <div class="flex gap-3">
+            <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
+            <div>
+                <h3 class="font-semibold text-red-900 mb-2">Эта операция необратима</h3>
+                <p class="text-sm text-red-800 mb-3">При удалении аккаунта будут безвозвратно удалены:</p>
+                <ul class="text-sm text-red-800 space-y-1 list-disc list-inside"><li>Все ваши проекты и сгенерированные документы</li><li>История генераций</li><li>Данные о платежах и подписке</li><li>Все участники команды потеряют доступ</li></ul>
+            </div>
+        </div>
+    </div>
+    <div class="space-y-4 mb-6">
+        <label class="flex items-start gap-3 cursor-pointer"><input type="checkbox" id="understandCheck" class="mt-1 w-4 h-4 text-red-600 border-gray-300 rounded"><span class="text-sm text-gray-700">Я понимаю, что удаление необратимо и все данные будут потеряны</span></label>
+        <label class="flex items-start gap-3 cursor-pointer"><input type="checkbox" id="billingCheck" class="mt-1 w-4 h-4 text-red-600 border-gray-300 rounded"><span class="text-sm text-gray-700">Я подтверждаю, что у меня нет активных подписок и я оплатил все счета</span></label>
+    </div>
+    <div class="mb-6"><label class="block text-sm font-medium text-gray-700 mb-2">Введите <code class="bg-gray-100 px-2 py-0.5 rounded font-mono text-red-600">DELETE</code> для подтверждения</label><input type="text" id="deleteConfirm" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-red-600/20 focus:border-red-600"></div>
+    <button id="deleteAccountBtn" disabled class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed">Удалить аккаунт</button>
+</div>
+
+<script>
+    const understand = document.getElementById('understandCheck');
+    const billing = document.getElementById('billingCheck');
+    const confirmInput = document.getElementById('deleteConfirm');
+    const deleteBtn = document.getElementById('deleteAccountBtn');
+    function checkDelete() { deleteBtn.disabled = !(understand.checked && billing.checked && confirmInput.value === 'DELETE'); }
+    understand.addEventListener('change', checkDelete);
+    billing.addEventListener('change', checkDelete);
+    confirmInput.addEventListener('input', checkDelete);
+    deleteBtn.addEventListener('click', function() { if(confirm('Вы уверены? Это действие необратимо!')) showToast('Аккаунт удален'); });
+</script>

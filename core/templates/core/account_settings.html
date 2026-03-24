@@ -1,0 +1,131 @@
+{% extends "core/base.html" %}
+
+{% block title %}Настройки аккаунта{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-[#1F2937] mb-2">Настройки аккаунта</h1>
+    <p class="text-gray-600">Управляйте настройками вашего профиля и предпочтениями</p>
+</div>
+
+<div class="flex flex-col lg:flex-row gap-8">
+    <!-- Side Navigation -->
+    <nav class="lg:w-64 flex-shrink-0">
+        <div class="bg-white rounded-lg border border-gray-200 p-2 sticky top-24">
+            {% for item in menu_items %}
+            <button
+                onclick="setActiveSection('{{ item.id }}')"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left {% if active_section == item.id %}bg-[#2563EB] text-white{% elif item.danger %}text-red-600 hover:bg-red-50{% else %}text-gray-700 hover:bg-gray-50{% endif %}"
+                id="btn-{{ item.id }}"
+            >
+                <i class="{{ item.icon }} w-5 h-5"></i>
+                <span class="text-sm font-medium">{{ item.label }}</span>
+            </button>
+            {% endfor %}
+        </div>
+    </nav>
+
+    <!-- Content Area -->
+    <div class="flex-1 min-w-0">
+        <!-- Profile Section -->
+        <div id="section-profile" class="section-content">
+            {% include "core/settings_profile.html" %}
+        </div>
+
+        <!-- Security Section -->
+        <div id="section-security" class="section-content hidden">
+            {% include "core/settings_security.html" %}
+        </div>
+
+        <!-- Notifications Section -->
+        <div id="section-notifications" class="section-content hidden">
+            {% include "core/settings_notifications.html" %}
+        </div>
+
+        <!-- Billing Section -->
+        <div id="section-billing" class="section-content hidden">
+            {% include "core/settings_billing.html" %}
+        </div>
+
+        <!-- Team Section -->
+        <div id="section-team" class="section-content hidden">
+            {% include "core/settings_team.html" %}
+        </div>
+
+        <!-- API Section -->
+        <div id="section-api" class="section-content hidden">
+            {% include "core/settings_api.html" %}
+        </div>
+
+        <!-- Delete Section -->
+        <div id="section-delete" class="section-content hidden">
+            {% include "core/settings_delete.html" %}
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="fixed bottom-4 right-4 z-50 hidden">
+    <div class="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg bg-green-600 text-white">
+        <i class="fas fa-check-circle w-5 h-5"></i>
+        <span id="toastMessage">Изменения сохранены</span>
+    </div>
+</div>
+
+<script>
+    let currentSection = 'profile';
+
+    function showToast(message, isSuccess = true) {
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+        const toastDiv = toast.querySelector('div');
+        
+        toastMessage.textContent = message;
+        
+        if (isSuccess) {
+            toastDiv.className = 'flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg bg-green-600 text-white';
+        } else {
+            toastDiv.className = 'flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg bg-red-600 text-white';
+        }
+        
+        toast.classList.remove('hidden');
+        setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 3000);
+    }
+
+    function setActiveSection(sectionId) {
+        // Обновляем активную кнопку
+        document.querySelectorAll('.section-content').forEach(section => {
+            section.classList.add('hidden');
+        });
+        
+        document.getElementById(`section-${sectionId}`).classList.remove('hidden');
+        
+        // Обновляем стили кнопок
+        const menuItems = ['profile', 'security', 'notifications', 'billing', 'team', 'api', 'delete'];
+        menuItems.forEach(item => {
+            const btn = document.getElementById(`btn-${item}`);
+            if (btn) {
+                if (item === sectionId) {
+                    btn.classList.add('bg-[#2563EB]', 'text-white');
+                    btn.classList.remove('text-gray-700', 'hover:bg-gray-50');
+                } else {
+                    btn.classList.remove('bg-[#2563EB]', 'text-white');
+                    btn.classList.add('text-gray-700', 'hover:bg-gray-50');
+                    if (item === 'delete') {
+                        btn.classList.add('text-red-600', 'hover:bg-red-50');
+                    }
+                }
+            }
+        });
+        
+        currentSection = sectionId;
+    }
+
+    // Сохраняем активную секцию при загрузке
+    document.addEventListener('DOMContentLoaded', function() {
+        setActiveSection('profile');
+    });
+</script>
+{% endblock %}

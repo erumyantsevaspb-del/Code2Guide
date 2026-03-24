@@ -1,0 +1,83 @@
+<div class="space-y-6">
+    <!-- Current Plan -->
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-[#1F2937] mb-6">Текущий тариф</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-6 rounded-lg border-2 border-gray-200 hover:border-gray-300 transition-all">
+                <h3 class="text-lg font-semibold text-[#1F2937] mb-2">Free</h3>
+                <p class="text-2xl font-bold text-[#2563EB] mb-4">0 ₽/мес</p>
+                <ul class="space-y-2 mb-4">
+                    <li class="text-sm text-gray-600 flex items-start gap-2"><span class="text-green-600">✓</span> 1 проект</li>
+                    <li class="text-sm text-gray-600 flex items-start gap-2"><span class="text-green-600">✓</span> До 5 генераций в месяц</li>
+                    <li class="text-sm text-gray-600 flex items-start gap-2"><span class="text-green-600">✓</span> Только PDF</li>
+                </ul>
+                <button class="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                    Перейти на Free
+                </button>
+            </div>
+
+            <div class="p-6 rounded-lg border-2 border-[#2563EB] bg-blue-50">
+                <h3 class="text-lg font-semibold text-[#1F2937] mb-2">Starter</h3>
+                <p class="text-2xl font-bold text-[#2563EB] mb-4">4 900 ₽/мес</p>
+                <p class="text-sm text-gray-600 mb-3">Активен до 22 марта 2026</p>
+                <ul class="space-y-2 mb-4">
+                    <li class="text-sm text-gray-600 flex items-start gap-2"><span class="text-green-600">✓</span> 1 проект</li>
+                    <li class="text-sm text-gray-600 flex items-start gap-2"><span class="text-green-600">✓</span> До 20 генераций в месяц</li>
+                    <li class="text-sm text-gray-600 flex items-start gap-2"><span class="text-green-600">✓</span> Word + PDF</li>
+                </ul>
+                <button class="w-full px-4 py-2 border border-[#2563EB] text-[#2563EB] rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium">
+                    Текущий план
+                </button>
+            </div>
+
+            <div class="p-6 rounded-lg border-2 border-gray-200 hover:border-gray-300 transition-all">
+                <h3 class="text-lg font-semibold text-[#1F2937] mb-2">Business</h3>
+                <p class="text-2xl font-bold text-[#2563EB] mb-4">9 900 ₽/мес</p>
+                <ul class="space-y-2 mb-4">
+                    <li class="text-sm text-gray-600 flex items-start gap-2"><span class="text-green-600">✓</span> 3 проекта</li>
+                    <li class="text-sm text-gray-600 flex items-start gap-2"><span class="text-green-600">✓</span> До 100 генераций в месяц</li>
+                    <li class="text-sm text-gray-600 flex items-start gap-2"><span class="text-green-600">✓</span> Приоритетная поддержка</li>
+                </ul>
+                <button class="w-full px-4 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-[#1d4ed8] transition-colors text-sm font-medium">
+                    Перейти
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Method -->
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-[#1F2937] mb-6">Способ оплаты</h2>
+        <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-8 bg-[#2563EB] rounded flex items-center justify-center text-white text-xs font-bold">VISA</div>
+                <div>
+                    <p class="font-medium text-[#1F2937]">•••• •••• •••• 1234</p>
+                    <p class="text-sm text-gray-600">Срок действия: 05/27</p>
+                </div>
+            </div>
+            <button class="px-4 py-2 text-sm text-[#2563EB] hover:bg-blue-50 rounded-lg transition-colors">Изменить</button>
+        </div>
+        <button class="mt-3 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+            <i class="fas fa-plus mr-2"></i>Добавить другой способ
+        </button>
+    </div>
+
+    <!-- Payment History -->
+    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div class="p-6 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-[#1F2937]">История платежей</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Дата</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Сумма</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Статус</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Счет</th></tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr><td class="px-6 py-4 text-sm text-gray-900">22 янв 2026</td><td class="px-6 py-4 text-sm font-medium">30 000 ₽</td><td class="px-6 py-4"><span class="px-2.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Оплачено</span></td><td class="px-6 py-4"><button class="text-[#2563EB]"><i class="fas fa-download"></i></button></td></tr>
+                    <tr><td class="px-6 py-4 text-sm text-gray-900">22 дек 2025</td><td class="px-6 py-4 text-sm font-medium">30 000 ₽</td><td class="px-6 py-4"><span class="px-2.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Оплачено</span></td><td class="px-6 py-4"><button class="text-[#2563EB]"><i class="fas fa-download"></i></button></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
