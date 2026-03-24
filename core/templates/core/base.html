@@ -8,6 +8,22 @@
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Настройка Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563EB',
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
         * {
             margin: 0;
@@ -140,6 +156,7 @@
             padding: 6px 12px;
             border-radius: var(--radius-sm);
             transition: background 0.2s;
+            text-decoration: none;
         }
 
         .user-menu:hover {
@@ -513,6 +530,53 @@
             height: 20px;
         }
 
+        /* Messages */
+        .messages-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .message {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message-success {
+            background-color: #10B981;
+            color: white;
+        }
+
+        .message-error {
+            background-color: #EF4444;
+            color: white;
+        }
+
+        .message-info {
+            background-color: #3B82F6;
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -562,10 +626,50 @@
                 width: 100%;
             }
         }
+
+        /* Modal styles */
+        #createProjectModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+        }
+
+        #createProjectModal.hidden {
+            display: none !important;
+        }
+
+        #createProjectModal:not(.hidden) {
+            display: flex !important;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes zoomIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        #createProjectModal .fixed.inset-0.bg-black\/50 {
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        #createProjectModal .relative.bg-white {
+            animation: zoomIn 0.2s ease-out;
+        }
     </style>
     {% block extra_css %}{% endblock %}
-    <!-- Tailwind CSS -->
-        <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
     <button class="mobile-menu-btn" onclick="toggleSidebar()">
@@ -575,25 +679,25 @@
     <div class="app">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <a href="/" class="logo">
+                <a href="{% url 'home' %}" class="logo">
                     <i class="fas fa-code"></i>
                     Code2Guide
                 </a>
             </div>
             <nav class="nav-menu">
-                <a href="/" class="nav-item {% if active_menu == 'projects' %}active{% endif %}">
+                <a href="{% url 'home' %}" class="nav-item {% if active_menu == 'projects' %}active{% endif %}">
                     <span class="nav-icon"><i class="fas fa-folder-open"></i></span>
                     <span>Проекты</span>
                 </a>
-                <a href="/history/" class="nav-item {% if active_menu == 'history' %}active{% endif %}">
+                <a href="{% url 'history' %}" class="nav-item {% if active_menu == 'history' %}active{% endif %}">
                     <span class="nav-icon"><i class="fas fa-history"></i></span>
                     <span>История генераций</span>
                 </a>
-                <a href="/settings/" class="nav-item {% if active_menu == 'settings' %}active{% endif %}">
+                <a href="{% url 'settings' %}" class="nav-item {% if active_menu == 'settings' %}active{% endif %}">
                     <span class="nav-icon"><i class="fas fa-sliders-h"></i></span>
                     <span>Настройки аккаунта</span>
                 </a>
-                <a href="/logout/" class="nav-item">
+                <a href="{% url 'logout' %}" class="nav-item">
                     <span class="nav-icon"><i class="fas fa-sign-out-alt"></i></span>
                     <span>Выйти</span>
                 </a>
@@ -602,16 +706,36 @@
 
         <main class="main">
             <header class="header">
-                <div class="user-menu">
+                <a href="{% url 'settings' %}" class="user-menu" style="text-decoration: none;">
                     <div class="user-info">
-                        <div class="user-name">{{ user.name|default:"Моя компания" }}</div>
-                        <div class="user-email">{{ user.email|default:"admin@company.com" }}</div>
+                        <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+                        <div class="user-email">{{ request.user.email }}</div>
                     </div>
                     <div class="avatar">
-                        {{ user.name|slice:":1"|default:"М" }}
+                        {{ request.user.username|slice:":1"|upper }}
                     </div>
-                </div>
+                </a>
             </header>
+
+            <!-- Сообщения -->
+            {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                <div class="message message-{{ message.tags }}">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                    <span>{{ message }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            <script>
+                setTimeout(() => {
+                    document.querySelectorAll('.message').forEach(el => {
+                        el.style.opacity = '0';
+                        setTimeout(() => el.remove(), 300);
+                    });
+                }, 3000);
+            </script>
+            {% endif %}
 
             <div class="content">
                 {% block content %}{% endblock %}

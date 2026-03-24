@@ -1,0 +1,83 @@
+{% extends "core/base_auth.html" %}
+
+{% block title %}Регистрация в Code2Guide{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <div class="flex justify-center">
+                <i class="fas fa-code text-5xl text-[#2563EB]"></i>
+            </div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Code2Guide
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                Создайте новый аккаунт
+            </p>
+        </div>
+
+        <form class="mt-8 space-y-6" method="post">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="space-y-1">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                        <div class="flex items-center gap-2 text-red-600 text-sm">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>{{ error }}</span>
+                        </div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="rounded-md shadow-sm space-y-3">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Имя пользователя</label>
+                    <input id="username" name="username" type="text" required
+                        class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#2563EB] focus:border-[#2563EB] focus:z-10 sm:text-sm"
+                        placeholder="Введите имя пользователя">
+                </div>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input id="email" name="email" type="email" required
+                        class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#2563EB] focus:border-[#2563EB] focus:z-10 sm:text-sm"
+                        placeholder="Введите email">
+                </div>
+                <div>
+                    <label for="password1" class="block text-sm font-medium text-gray-700 mb-1">Пароль</label>
+                    <input id="password1" name="password1" type="password" required
+                        class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#2563EB] focus:border-[#2563EB] focus:z-10 sm:text-sm"
+                        placeholder="Введите пароль">
+                </div>
+                <div>
+                    <label for="password2" class="block text-sm font-medium text-gray-700 mb-1">Подтверждение пароля</label>
+                    <input id="password2" name="password2" type="password" required
+                        class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#2563EB] focus:border-[#2563EB] focus:z-10 sm:text-sm"
+                        placeholder="Повторите пароль">
+                </div>
+            </div>
+
+            <div>
+                <button type="submit"
+                    class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#2563EB] hover:bg-[#1d4ed8] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2563EB]">
+                    Зарегистрироваться
+                </button>
+            </div>
+
+            <div class="text-center">
+                <p class="text-sm text-gray-600">
+                    Уже есть аккаунт?
+                    <a href="{% url 'login' %}" class="font-medium text-[#2563EB] hover:text-[#1d4ed8]">
+                        Войти
+                    </a>
+                </p>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -27,13 +27,13 @@ class Project(models.Model):
         verbose_name="Описание"
     )
 
-    # Связь с пользователем (опционально)
+    # Связь с пользователем (ОБЯЗАТЕЛЬНО)
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='projects',
         verbose_name="Пользователь",
-        null=True,
+        null=True,  # временно разрешаем null для существующих записей
         blank=True
     )
 
@@ -69,9 +69,8 @@ class Generation(models.Model):
         ('failed', 'Ошибка'),
     ]
 
-    # Используем строковую ссылку на Project, чтобы избежать NameError
     project = models.ForeignKey(
-        'core.Project',  # ← строковая ссылка вместо прямого имени
+        'core.Project',
         on_delete=models.CASCADE,
         related_name='generations',
         verbose_name="Проект",
@@ -79,26 +78,31 @@ class Generation(models.Model):
         blank=True
     )
 
-    # Дата и время генерации
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='generations',
+        verbose_name="Пользователь",
+        null=True,
+        blank=True
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Дата и время"
     )
 
-    # Коммит (описание изменений)
     commit = models.CharField(
         max_length=255,
         verbose_name="Коммит",
         help_text="Описание изменений"
     )
 
-    # Количество компонентов
     components_count = models.PositiveIntegerField(
         default=0,
         verbose_name="Компоненты"
     )
 
-    # Статус генерации
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
@@ -106,7 +110,6 @@ class Generation(models.Model):
         verbose_name="Статус"
     )
 
-    # Дополнительное описание
     description = models.TextField(
         blank=True,
         verbose_name="Описание"
@@ -121,5 +124,4 @@ class Generation(models.Model):
         return f"{self.commit} - {self.created_at.strftime('%d.%m.%Y %H:%M')}"
 
     def get_status_display_ru(self):
-        """Возвращает статус на русском"""
         return dict(self.STATUS_CHOICES).get(self.status, self.status)
