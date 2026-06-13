@@ -132,30 +132,28 @@
     </div>
 </div>
 
-<div class="bg-white rounded-lg border border-gray-200 p-6 mt-8">
-    <h2 class="text-xl font-semibold text-[#1F2937] mb-4">
-        Предварительный просмотр инструкции
-    </h2>
+<div class="space-y-4">
+    {% if routes %}
+        {% for route in routes %}
+            <div class="border-b pb-3">
+                <h3 class="font-semibold text-[#1F2937]">
+                    {{ route.name }}
+                </h3>
 
-    <div class="space-y-4">
-        <div class="border-b pb-3">
-            <h3 class="font-semibold text-[#1F2937]">Dashboard</h3>
-            <p class="text-sm text-gray-600">URL: /dashboard</p>
-            <p class="text-sm text-gray-600">Компонент: Dashboard</p>
-        </div>
+                <p class="text-sm text-gray-600">
+                    URL: {{ route.path }}
+                </p>
 
-        <div class="border-b pb-3">
-            <h3 class="font-semibold text-[#1F2937]">Forms</h3>
-            <p class="text-sm text-gray-600">URL: /forms</p>
-            <p class="text-sm text-gray-600">Компонент: FormControl</p>
-        </div>
-
-        <div>
-            <h3 class="font-semibold text-[#1F2937]">Validation</h3>
-            <p class="text-sm text-gray-600">URL: /forms/validation</p>
-            <p class="text-sm text-gray-600">Компонент: Validation</p>
-        </div>
-    </div>
+                <p class="text-sm text-gray-600">
+                    Компонент: {{ route.component|default:"Не определён" }}
+                </p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-gray-500">
+            Инструкция ещё не сгенерирована.
+        </p>
+    {% endif %}
 </div>
 
 <!-- История генераций проекта -->

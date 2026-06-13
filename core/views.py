@@ -8,6 +8,11 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from .models import Project, Generation
 import random
+import shutil
+from pathlib import Path
+
+from .services.github_service import clone_repository
+from .services.react_parser import parse_routes
 
 
 def register_view(request):
@@ -236,6 +241,7 @@ def project_detail(request, project_id):
         'generations_count': project_generations.count(),
         'last_generation': project_generations.first(),
         'active_menu': 'projects',
+        'routes': [],
     }
     return render(request, 'core/project_detail.html', context)
 
@@ -245,30 +251,57 @@ def project_detail(request, project_id):
 def generate_instruction_api(request, project_id):
     """API для генерации инструкции"""
     try:
-        project = get_object_or_404(Project, id=project_id, user=request.user)
-
-        # Создаём новую генерацию
-        generation = Generation.objects.create(
-            project=project,
-            user=request.user,
-            commit_hash=f"gen_{int(timezone.now().timestamp())}",
-            commit_message=f"Генерация инструкции для {project.name}",
-            components_count=random.randint(5, 30),
-            status='completed',
-            completed_at=timezone.now()
+        project = get_object_or_404(
+            Project,
+            id=project_id,
+            user=request.user
         )
 
-        # Обновляем количество инструкций в проекте
-        project.instructions_count += generation.components_count
-        project.save()
+        # Скачиваем репозиторий
+        repo_path = clone_repository(
+            project.repo_url,
+            project.branch
+        )
 
-        return JsonResponse({
-            'success': True,
-            'generation': {
-                'id': generation.id,
-                'components': generation.components_count
-            }
-        })
+        try:
+            # Ищем routes.js
+            routes_path = Path(repo_path) / "src" / "routes.js"
+
+            if not routes_path.exists():
+                raise Exception("Файл routes.js не найден")
+
+            # Генерируем инструкцию
+            routes = parse_routes(routes_path)
+
+            # Создаём новую генерацию
+            generation = Generation.objects.create(
+                project=project,
+                user=request.user,
+                commit_hash=f"gen_{int(timezone.now().timestamp())}",
+                commit_message=f"Генерация инструкции для {project.name}",
+                components_count=len(routes),
+                instruction_data=routes,
+                status='completed',
+                completed_at=timezone.now()
+            )
+
+            # Обновляем количество инструкций в проекте
+            project.instructions_count = len(routes)
+            project.save()
+
+            return JsonResponse({
+                'success': True,
+                'generation': {
+                    'id': generation.id,
+                    'components': generation.components_count
+                }
+            })
+
+        finally:
+            # Удаляем временную папку с репозиторием
+            shutil.rmtree(repo_path, ignore_errors=True)
 
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({
+            'error': str(e)
+        }, status=500)

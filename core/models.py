@@ -173,6 +173,12 @@ class Generation(models.Model):
         verbose_name="Дата завершения"
     )
 
+    instruction_data = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Данные инструкции"
+    )
+
     class Meta:
         verbose_name = "Генерация"
         verbose_name_plural = "Генерации"
