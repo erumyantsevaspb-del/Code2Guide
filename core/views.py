@@ -235,13 +235,19 @@ def project_detail(request, project_id):
     project = get_object_or_404(Project, id=project_id, user=request.user)
     project_generations = Generation.objects.filter(project=project).order_by('-created_at')
 
+    last_generation = project_generations.first()
+
     context = {
         'project': project,
         'project_generations': project_generations,
         'generations_count': project_generations.count(),
-        'last_generation': project_generations.first(),
+        'last_generation': last_generation,
         'active_menu': 'projects',
-        'routes': [],
+        'routes': (
+            last_generation.instruction_data
+            if last_generation
+            else []
+        ),
     }
     return render(request, 'core/project_detail.html', context)
 
