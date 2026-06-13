@@ -2,30 +2,60 @@ import re
 from pathlib import Path
 
 
-def parse_routes(routes_file_path):
+def parse_component_imports(routes_path):
+    """
+    Извлекает соответствие:
+    компонент -> путь к файлу
+    """
+
+    with open(routes_path, encoding="utf-8") as f:
+        content = f.read()
+
+    imports = {}
+
+    pattern = (
+        r'const\s+(\w+)\s*='
+        r'\s*React\.lazy\(\(\)\s*=>\s*import\('
+        r"['\"](.+?)['\"]"
+    )
+
+    matches = re.findall(
+        pattern,
+        content
+    )
+
+    for component, path in matches:
+        imports[component] = path
+
+    return imports
+
+def parse_routes(file_path):
     """
     Извлекает маршруты из routes.js
     """
 
-    with open(routes_file_path, 'r', encoding='utf-8') as file:
-        content = file.read()
+    with open(file_path, encoding="utf-8") as f:
+        content = f.read()
 
     routes = []
 
-    route_pattern = re.compile(r"\{([^{}]+)\}")
+    pattern = (
+        r"\{\s*path:\s*'([^']+)'.*?"
+        r"name:\s*'([^']+)'.*?"
+        r"element:\s*(\w+)"
+    )
 
-    for route_match in route_pattern.finditer(content):
-        route_text = route_match.group(1)
+    matches = re.findall(
+        pattern,
+        content,
+        re.DOTALL
+    )
 
-        path_match = re.search(r"path:\s*'([^']+)'", route_text)
-        name_match = re.search(r"name:\s*'([^']+)'", route_text)
-        element_match = re.search(r"element:\s*([A-Za-z0-9_]+)", route_text)
-
-        if path_match and name_match:
-            routes.append({
-                'path': path_match.group(1),
-                'name': name_match.group(1),
-                'component': element_match.group(1) if element_match else None,
-            })
+    for path, name, component in matches:
+        routes.append({
+            "path": path,
+            "name": name,
+            "component": component,
+        })
 
     return routes

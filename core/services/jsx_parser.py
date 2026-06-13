@@ -75,3 +75,37 @@ def parse_jsx_instructions(file_path):
             unique_instructions.append(instruction)
 
     return unique_instructions
+
+from pathlib import Path
+
+
+def find_component_file(repo_path, relative_path):
+    """
+    Ищет js/jsx/tsx файл компонента.
+    """
+
+    extensions = [
+        ".js",
+        ".jsx",
+        ".tsx",
+    ]
+
+    for ext in extensions:
+
+        candidate = (
+            Path(repo_path)
+            / "src"
+            / relative_path.replace(
+                "./",
+                ""
+            )
+        )
+
+        candidate = Path(
+            str(candidate) + ext
+        )
+
+        if candidate.exists():
+            return candidate
+
+    return None
