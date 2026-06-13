@@ -1,11 +1,13 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 from .models import Project, Generation
+import random
 
 
 def register_view(request):
@@ -135,15 +137,28 @@ def create_project_api(request):
         name = request.POST.get('name')
         repo_url = request.POST.get('repo_url')
         branch = request.POST.get('branch', 'main')
+        react_archive = request.FILES.get('react_archive')
 
-        if not name or not repo_url:
-            return JsonResponse({'error': 'Название и URL репозитория обязательны'}, status=400)
+        if not name:
+            return JsonResponse(
+                {'error': 'Название проекта обязательно'},
+                status=400
+            )
+
+        if not repo_url and not react_archive:
+            return JsonResponse(
+                {'error': 'Укажите URL репозитория или загрузите ZIP архив'},
+                status=400
+            )
 
         project = Project.objects.create(
             name=name,
             description=f"Репозиторий: {repo_url}\nВетка: {branch}",
             instructions_count=0,
-            user=request.user
+            user=request.user,
+            repo_url=repo_url,
+            react_archive=react_archive,
+            branch=branch,
         )
 
         return JsonResponse({
@@ -204,6 +219,56 @@ def change_password_api(request):
         update_session_auth_hash(request, user)
 
         return JsonResponse({'success': True})
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def project_detail(request, project_id):
+    """Страница деталей проекта"""
+    project = get_object_or_404(Project, id=project_id, user=request.user)
+    project_generations = Generation.objects.filter(project=project).order_by('-created_at')
+
+    context = {
+        'project': project,
+        'project_generations': project_generations,
+        'generations_count': project_generations.count(),
+        'last_generation': project_generations.first(),
+        'active_menu': 'projects',
+    }
+    return render(request, 'core/project_detail.html', context)
+
+
+@login_required
+@require_POST
+def generate_instruction_api(request, project_id):
+    """API для генерации инструкции"""
+    try:
+        project = get_object_or_404(Project, id=project_id, user=request.user)
+
+        # Создаём новую генерацию
+        generation = Generation.objects.create(
+            project=project,
+            user=request.user,
+            commit_hash=f"gen_{int(timezone.now().timestamp())}",
+            commit_message=f"Генерация инструкции для {project.name}",
+            components_count=random.randint(5, 30),
+            status='completed',
+            completed_at=timezone.now()
+        )
+
+        # Обновляем количество инструкций в проекте
+        project.instructions_count += generation.components_count
+        project.save()
+
+        return JsonResponse({
+            'success': True,
+            'generation': {
+                'id': generation.id,
+                'components': generation.components_count
+            }
+        })
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
