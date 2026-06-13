@@ -19,7 +19,11 @@
         <div class="project-card">
             <div class="project-header">
                 <div class="project-info">
-                    <h3>{{ project.name }}</h3>
+                    <h3>
+                        <a href="{% url 'project_detail' project.id %}"
+                           style="color: inherit; text-decoration: none;">
+                            {{ project.name }}
+                    </h3>
                     <p>{{ project.created_at|date:"d E Y" }}</p>
                 </div>
                 <div class="status-badge">
