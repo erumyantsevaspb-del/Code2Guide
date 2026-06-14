@@ -12,7 +12,17 @@ import shutil
 from pathlib import Path
 
 from .services.github_service import clone_repository
-from .services.react_parser import parse_routes
+from .services.react_parser import (
+    parse_routes,
+    parse_component_imports,
+)
+
+from .services.jsx_parser import (
+    parse_jsx_instructions,
+    find_component_file,
+)
+
+from .services.instruction_generator import humanize_routes
 
 
 def register_view(request):
@@ -243,7 +253,7 @@ def project_detail(request, project_id):
         'generations_count': project_generations.count(),
         'last_generation': last_generation,
         'active_menu': 'projects',
-        'routes': (
+        'instructions': (
             last_generation.instruction_data
             if last_generation
             else []
@@ -279,6 +289,37 @@ def generate_instruction_api(request, project_id):
             # Генерируем инструкцию
             routes = parse_routes(routes_path)
 
+            imports = parse_component_imports(routes_path)
+
+            print("\n=== IMPORTS ===")
+            print(f"Найдено импортов: {len(imports)}")
+            print("Validation:", imports.get("Validation"))
+            print("================\n")
+
+            validation_file = find_component_file(
+                repo_path,
+                imports.get("Validation")
+            )
+
+            print("\n=== JSX ===")
+            print(validation_file)
+            print("================\n")
+
+            instructions = parse_jsx_instructions(
+                validation_file
+            )
+
+            print("\n=== INSTRUCTIONS ===")
+
+            for i, instruction in enumerate(
+                    instructions,
+                    start=1
+            ):
+                print(f"{i}. {instruction}")
+
+            print("====================\n")
+
+
             # Создаём новую генерацию
             generation = Generation.objects.create(
                 project=project,
@@ -286,7 +327,13 @@ def generate_instruction_api(request, project_id):
                 commit_hash=f"gen_{int(timezone.now().timestamp())}",
                 commit_message=f"Генерация инструкции для {project.name}",
                 components_count=len(routes),
-                instruction_data=routes,
+                instruction_data=[
+                    {
+                        "name": "Validation",
+                        "path": "/forms/validation",
+                        "instructions": instructions,
+                    }
+                ],
                 status='completed',
                 completed_at=timezone.now()
             )

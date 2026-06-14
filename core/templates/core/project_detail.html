@@ -132,21 +132,37 @@
     </div>
 </div>
 
-<div class="space-y-4">
-    {% if routes %}
-        {% for route in routes %}
-            <div class="border-b pb-3">
-                <h3 class="font-semibold text-[#1F2937]">
-                    {{ route.name }}
-                </h3>
+<div class="space-y-6">
+    {% if instructions %}
+        {% for instruction in instructions %}
+            <div class="border rounded-lg p-6 bg-white">
 
-                <p class="text-sm text-gray-600">
-                    URL: {{ route.path }}
-                </p>
+                <h2 class="text-xl font-semibold text-[#1F2937] mb-4">
+                    Работа с разделом «{{ instruction.name }}»
+                </h2>
 
-                <p class="text-sm text-gray-600">
-                    Компонент: {{ route.component|default:"Не определён" }}
-                </p>
+                <div class="mb-4">
+                    <h3 class="font-semibold text-[#1F2937] mb-2">
+                        URL раздела
+                    </h3>
+
+                    <p class="text-gray-700">
+                        {{ instruction.path }}
+                    </p>
+                </div>
+
+                <div class="mb-4">
+                    <h3 class="font-semibold text-[#1F2937] mb-2">
+                        Порядок действий
+                    </h3>
+
+                    <ol class="list-decimal list-inside space-y-2 text-gray-700">
+                        {% for step in instruction.instructions %}
+                            <li>{{ step }}</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+
             </div>
         {% endfor %}
     {% else %}
