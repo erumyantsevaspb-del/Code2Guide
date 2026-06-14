@@ -17,6 +17,12 @@ urlpatterns = [
     path('settings/', views.account_settings, name='settings'),
     path('history/', views.history, name='history'),
     path('project/<int:project_id>/', views.project_detail, name='project_detail'),  # ← ДОБАВЬТЕ ЭТУ СТРОКУ
+    path(
+        'project/<int:project_id>/preview/',
+        views.preview_document,
+        name='preview_document',
+    ),
+
 
     # API
     path('api/projects/create/', views.create_project_api, name='create_project_api'),

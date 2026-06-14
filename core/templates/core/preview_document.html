@@ -1,0 +1,207 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+Предпросмотр документа
+{% endblock %}
+
+{% block content %}
+
+<div style="
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 32px;
+">
+
+    <!-- Левая колонка -->
+    <div>
+
+        <div class="card" style="margin-bottom: 24px;">
+            <h3 style="margin-bottom: 24px;">
+                PDF Документ
+            </h3>
+
+            <p><strong>{{ project.name }}</strong></p>
+
+            <p style="margin-top: 16px;">
+                Версия: 1.0
+            </p>
+
+            <p>
+                Инструкций: {{ project.instructions_count }}
+            </p>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-bottom: 24px;">
+                Действия
+            </h3>
+
+            <button class="btn-primary" style="width:100%;">
+                Скачать PDF
+            </button>
+
+            <button class="btn-outline"
+                    style="width:100%; margin-top:12px;">
+                Скачать Word
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- Viewer -->
+    <div>
+
+        <div class="card" style="
+            margin-bottom: 24px;
+            padding: 20px 32px;
+        ">
+
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+            ">
+
+                <div style="
+                    display:flex;
+                    align-items:center;
+                    gap:16px;
+                ">
+
+                    <button class="btn-outline">
+                        ←
+                    </button>
+
+                    <span>
+                        Страница 1 из {{ document_pages|length }}
+                    </span>
+
+                    <button class="btn-outline">
+                        →
+                    </button>
+
+                </div>
+
+                <div>
+                    100%
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="card" style="
+            min-height: 900px;
+        ">
+
+            Здесь будет документ
+
+        </div>
+
+    </div>
+
+</div>
+
+    <!-- Правая колонка -->
+    <div class="col-span-9">
+
+        <!-- Toolbar -->
+        <div class="card" style="
+            margin-bottom: 20px;
+            padding: 20px 32px;
+        ">
+
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+            ">
+
+                <div style="
+                    display:flex;
+                    gap:12px;
+                    align-items:center;
+                ">
+                    <button class="btn-outline">
+                        ←
+                    </button>
+
+                    <span>
+                        Страница 1 из {{ document_pages|length }}
+                    </span>
+
+                    <button class="btn-outline">
+                        →
+                    </button>
+                </div>
+
+                <div>
+                    100%
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Титульный лист -->
+        <div class="card" style="
+            padding: 80px;
+            min-height: 900px;
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+            background: white;
+        ">
+
+            {% with cover=document_pages.0 %}
+
+                <p style="
+                    letter-spacing: 4px;
+                    color: #6B7280;
+                    margin-bottom: 50px;
+                ">
+                    РУКОВОДСТВО ПОЛЬЗОВАТЕЛЯ
+                </p>
+
+                <h1 style="
+                    font-size: 48px;
+                    font-weight: 700;
+                    margin-bottom: 40px;
+                ">
+                    {{ cover.title }}
+                </h1>
+
+                <p style="
+                    font-size: 24px;
+                    color: #6B7280;
+                    margin-bottom: 80px;
+                ">
+                    {{ cover.subtitle }}
+                </p>
+
+                <p>
+                    Версия {{ cover.version }}
+                </p>
+
+                <p>
+                    {{ cover.generated_date }}
+                </p>
+
+                <div style="
+                    margin-top: 200px;
+                    color: #9CA3AF;
+                ">
+                    Сгенерировано автоматически сервисом
+                    <strong>{{ cover.generated_by }}</strong>
+                </div>
+
+            {% endwith %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

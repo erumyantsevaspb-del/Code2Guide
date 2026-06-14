@@ -24,6 +24,7 @@ from .services.jsx_parser import (
 
 from .services.instruction_generator import humanize_routes
 from .services.beautifier import beautify_instructions
+from .services.document_builder import build_document_pages
 
 
 def register_view(request):
@@ -248,18 +249,41 @@ def project_detail(request, project_id):
 
     last_generation = project_generations.first()
 
+    instructions = (
+        last_generation.instruction_data
+        if last_generation
+        else []
+    )
+
+    print("\n=== INSTRUCTIONS ===")
+
+    for instruction in instructions:
+        print(instruction)
+
+    print("====================\n")
+
+    document_pages = build_document_pages(
+        project,
+        instructions,
+    )
+
+    print("\n=== DOCUMENT PAGES ===")
+
+    for page in document_pages:
+        print(page)
+
+    print("======================")
+
     context = {
         'project': project,
         'project_generations': project_generations,
         'generations_count': project_generations.count(),
         'last_generation': last_generation,
         'active_menu': 'projects',
-        'instructions': (
-            last_generation.instruction_data
-            if last_generation
-            else []
-        ),
+        'instructions': instructions,
+        'document_pages': document_pages,
     }
+
     return render(request, 'core/project_detail.html', context)
 
 
@@ -363,3 +387,42 @@ def generate_instruction_api(request, project_id):
         return JsonResponse({
             'error': str(e)
         }, status=500)
+
+@login_required
+def preview_document(request, project_id):
+    """Предпросмотр документа"""
+
+    project = get_object_or_404(
+        Project,
+        id=project_id,
+        user=request.user,
+    )
+
+    generation = (
+        Generation.objects
+        .filter(project=project)
+        .order_by('-created_at')
+        .first()
+    )
+
+    instructions = (
+        generation.instruction_data
+        if generation
+        else []
+    )
+
+    document_pages = build_document_pages(
+        project,
+        instructions,
+    )
+
+    context = {
+        'project': project,
+        'document_pages': document_pages,
+    }
+
+    return render(
+        request,
+        'core/preview_document.html',
+        context,
+    )
