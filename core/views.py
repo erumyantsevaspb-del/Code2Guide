@@ -23,6 +23,7 @@ from .services.jsx_parser import (
 )
 
 from .services.instruction_generator import humanize_routes
+from .services.beautifier import beautify_instructions
 
 
 def register_view(request):
@@ -307,6 +308,10 @@ def generate_instruction_api(request, project_id):
 
             instructions = parse_jsx_instructions(
                 validation_file
+            )
+
+            instructions = beautify_instructions(
+                instructions
             )
 
             print("\n=== INSTRUCTIONS ===")
