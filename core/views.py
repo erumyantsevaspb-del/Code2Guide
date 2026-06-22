@@ -11,7 +11,6 @@ import random
 import shutil
 from pathlib import Path
 
-from .services.github_service import clone_repository
 from .services.react_parser import (
     parse_routes,
     parse_component_imports,
@@ -22,9 +21,9 @@ from .services.jsx_parser import (
     find_component_file,
 )
 
-from .services.instruction_generator import humanize_routes
-from .services.beautifier import beautify_instructions
+from .services.instruction_generator import generate_instructions_with_yandex
 from .services.document_builder import build_document_pages
+from .services.source_loader import prepare_project_source
 
 
 def register_view(request):
@@ -298,77 +297,55 @@ def generate_instruction_api(request, project_id):
             user=request.user
         )
 
-        # Скачиваем репозиторий
-        repo_path = clone_repository(
-            project.repo_url,
-            project.branch
-        )
+        # Получаем исходники (ZIP или репозиторий)
+        source_path, cleanup_path = prepare_project_source(project)
 
         try:
-            # Ищем routes.js
-            routes_path = Path(repo_path) / "src" / "routes.js"
+            routes_path = Path(source_path) / "src" / "routes.js"
 
             if not routes_path.exists():
-                raise Exception("Файл routes.js не найден")
+                raise Exception("Файл routes.js не найден в архиве")
 
-            # Генерируем инструкцию
             routes = parse_routes(routes_path)
-
             imports = parse_component_imports(routes_path)
 
-            print("\n=== IMPORTS ===")
-            print(f"Найдено импортов: {len(imports)}")
-            print("Validation:", imports.get("Validation"))
-            print("================\n")
+            instruction_data = []
 
-            validation_file = find_component_file(
-                repo_path,
-                imports.get("Validation")
-            )
+            for route in routes:
+                route_name = route.get('name') or 'Раздел'
+                route_path = route.get('path') or '/'
+                component_key = route.get('component') or route_name
 
-            print("\n=== JSX ===")
-            print(validation_file)
-            print("================\n")
+                component_file = find_component_file(
+                    source_path,
+                    imports.get(component_key, '')
+                )
 
-            instructions = parse_jsx_instructions(
-                validation_file
-            )
+                if component_file and Path(component_file).exists():
+                    jsx_content = Path(component_file).read_text(encoding='utf-8', errors='ignore')
+                else:
+                    jsx_content = ''
 
-            instructions = beautify_instructions(
-                instructions
-            )
+                steps = generate_instructions_with_yandex(route_name, route_path, jsx_content)
 
-            print("\n=== INSTRUCTIONS ===")
+                instruction_data.append({
+                    'name': route_name,
+                    'path': route_path,
+                    'instructions': steps,
+                })
 
-            for i, instruction in enumerate(
-                    instructions,
-                    start=1
-            ):
-                print(f"{i}. {instruction}")
-
-            print("====================\n")
-
-
-            # Создаём новую генерацию
             generation = Generation.objects.create(
                 project=project,
                 user=request.user,
                 commit_hash=f"gen_{int(timezone.now().timestamp())}",
                 commit_message=f"Генерация инструкции для {project.name}",
-                components_count=len(routes),
-                instruction_data=[
-                    {
-                        "name": "Validation",
-                        "path": "/forms/validation",
-                        "instructions": instructions,
-                    }
-                ],
+                components_count=len(instruction_data),
+                instruction_data=instruction_data,
                 status='completed',
                 completed_at=timezone.now()
             )
 
-            # Обновляем количество инструкций в проекте
-            project.instructions_count = len(routes)
+            project.instructions_count = len(instruction_data)
             project.save()
 
             return JsonResponse({
@@ -380,8 +357,7 @@ def generate_instruction_api(request, project_id):
             })
 
         finally:
-            # Удаляем временную папку с репозиторием
-            shutil.rmtree(repo_path, ignore_errors=True)
+            shutil.rmtree(cleanup_path, ignore_errors=True)
 
     except Exception as e:
         return JsonResponse({
@@ -416,9 +392,19 @@ def preview_document(request, project_id):
         instructions,
     )
 
+    total_pages = len(document_pages)
+    current_page = int(request.GET.get('page', 1))
+    current_page = max(1, min(current_page, total_pages))
+    current_page_data = document_pages[current_page - 1] if document_pages else {}
+
     context = {
         'project': project,
         'document_pages': document_pages,
+        'current_page': current_page,
+        'total_pages': total_pages,
+        'current_page_data': current_page_data,
+        'prev_page': current_page - 1 if current_page > 1 else None,
+        'next_page': current_page + 1 if current_page < total_pages else None,
     }
 
     return render(

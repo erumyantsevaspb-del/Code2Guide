@@ -87,10 +87,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
 
+# Media files (uploaded by users)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-STATIC_URL = 'static/'
+# YandexGPT
+YANDEX_API_KEY = os.environ.get('YANDEX_API_KEY', '')
+YANDEX_FOLDER_ID = os.environ.get('YANDEX_FOLDER_ID', '')
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'

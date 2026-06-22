@@ -32,10 +32,39 @@
                     <p class="text-sm text-gray-500">Введите понятное название, чтобы легко ориентироваться в списке проектов</p>
                 </div>
 
+                <!-- ZIP архив проекта -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                        ZIP-архив React проекта <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-5 bg-gray-50 hover:border-[#2563EB] transition-colors cursor-pointer" id="zipDropzone">
+                        <input type="file" id="reactArchive" name="react_archive" accept=".zip,application/zip" class="hidden">
+                        <div id="zipPlaceholder" class="flex flex-col items-center gap-2 text-center">
+                            <i class="fas fa-file-archive text-3xl text-gray-400"></i>
+                            <p class="text-sm text-gray-600">Перетащите ZIP сюда или <span class="text-[#2563EB] font-medium">нажмите для выбора</span></p>
+                            <p class="text-xs text-gray-400">Архив должен содержать папку src/ с файлом routes.js</p>
+                        </div>
+                        <div id="zipSelected" class="hidden flex items-center gap-3">
+                            <i class="fas fa-file-archive text-2xl text-[#2563EB]"></i>
+                            <div class="flex-1 min-w-0">
+                                <p id="zipFileName" class="text-sm font-medium text-gray-700 truncate"></p>
+                                <p id="zipFileSize" class="text-xs text-gray-400"></p>
+                            </div>
+                            <button type="button" id="removeZipBtn" class="p-1 text-gray-400 hover:text-red-500 transition-colors">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="zipError" class="hidden flex items-center gap-2 mt-1 text-red-600 text-sm">
+                        <i class="fas fa-exclamation-circle text-sm"></i>
+                        <span>Загрузите ZIP-архив проекта</span>
+                    </div>
+                </div>
+
                 <!-- URL репозитория -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">
-                        URL репозитория <span class="text-red-500">*</span>
+                        URL репозитория <span class="text-gray-400 font-normal">(необязательно)</span>
                     </label>
                     <div class="relative">
                         <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -231,6 +260,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('createProjectForm');
     const projectNameInput = document.getElementById('projectName');
     const repoUrlInput = document.getElementById('repoUrl');
+    const reactArchiveInput = document.getElementById('reactArchive');
+    const zipDropzone = document.getElementById('zipDropzone');
+    const zipPlaceholder = document.getElementById('zipPlaceholder');
+    const zipSelected = document.getElementById('zipSelected');
+    const zipFileName = document.getElementById('zipFileName');
+    const zipFileSize = document.getElementById('zipFileSize');
+    const removeZipBtn = document.getElementById('removeZipBtn');
     const toggleAdvancedBtn = document.getElementById('toggleAdvancedBtn');
     const advancedPanel = document.getElementById('advancedPanel');
     const advancedIcon = document.getElementById('advancedIcon');
@@ -267,20 +303,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (projectNameInput) projectNameInput.classList.remove('border-red-500');
         if (repoUrlInput) repoUrlInput.classList.remove('border-red-500');
 
-        const nameError = document.getElementById('projectNameError');
-        const repoError = document.getElementById('repoUrlError');
-        const webhookError = document.getElementById('webhookError');
+        ['projectNameError', 'repoUrlError', 'zipError', 'webhookError'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
 
-        if (nameError) nameError.classList.add('hidden');
-        if (repoError) repoError.classList.add('hidden');
-        if (webhookError) webhookError.classList.add('hidden');
+        if (zipPlaceholder) zipPlaceholder.classList.remove('hidden');
+        if (zipSelected) zipSelected.classList.add('hidden');
+        if (zipDropzone) zipDropzone.classList.remove('border-[#2563EB]');
 
         if (advancedPanel) advancedPanel.classList.add('hidden');
         if (advancedIcon) advancedIcon.style.transform = 'rotate(0deg)';
-
         if (webhookField) webhookField.classList.add('hidden');
         if (notificationsCheckbox) notificationsCheckbox.checked = false;
-
         if (logoPlaceholder) logoPlaceholder.classList.remove('hidden');
         if (logoPreview) logoPreview.classList.add('hidden');
         if (logoPreviewImg) logoPreviewImg.src = '';
@@ -290,6 +325,53 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<span>Создать проект</span>';
         }
+    }
+
+    function showZipFile(file) {
+        zipPlaceholder.classList.add('hidden');
+        zipSelected.classList.remove('hidden');
+        zipFileName.textContent = file.name;
+        zipFileSize.textContent = (file.size / 1024 / 1024).toFixed(1) + ' МБ';
+        document.getElementById('zipError').classList.add('hidden');
+    }
+
+    // ZIP dropzone — клик
+    if (zipDropzone) {
+        zipDropzone.addEventListener('click', () => reactArchiveInput.click());
+        zipDropzone.addEventListener('dragover', e => {
+            e.preventDefault();
+            zipDropzone.classList.add('border-[#2563EB]', 'bg-blue-50');
+        });
+        zipDropzone.addEventListener('dragleave', () => {
+            zipDropzone.classList.remove('border-[#2563EB]', 'bg-blue-50');
+        });
+        zipDropzone.addEventListener('drop', e => {
+            e.preventDefault();
+            zipDropzone.classList.remove('border-[#2563EB]', 'bg-blue-50');
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.toLowerCase().endsWith('.zip')) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                reactArchiveInput.files = dt.files;
+                showZipFile(file);
+            }
+        });
+    }
+
+    if (reactArchiveInput) {
+        reactArchiveInput.addEventListener('change', () => {
+            const file = reactArchiveInput.files[0];
+            if (file) showZipFile(file);
+        });
+    }
+
+    if (removeZipBtn) {
+        removeZipBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            reactArchiveInput.value = '';
+            zipPlaceholder.classList.remove('hidden');
+            zipSelected.classList.add('hidden');
+        });
     }
 
     function validateForm() {
@@ -304,28 +386,31 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('projectNameError').classList.add('hidden');
         }
 
-        const repoUrl = repoUrlInput.value.trim();
-        const githubPattern = /^https:\/\/github\.com\/[\w-]+\/[\w-]+$/;
-        if (!repoUrl) {
-            repoUrlInput.classList.add('border-red-500');
-            document.getElementById('repoUrlError').classList.remove('hidden');
-            document.getElementById('repoUrlError').querySelector('span').textContent = 'Укажите URL репозитория';
-            isValid = false;
-        } else if (!githubPattern.test(repoUrl)) {
-            repoUrlInput.classList.add('border-red-500');
-            document.getElementById('repoUrlError').classList.remove('hidden');
-            document.getElementById('repoUrlError').querySelector('span').textContent = 'Укажите корректный URL репозитория GitHub';
+        if (!reactArchiveInput || !reactArchiveInput.files[0]) {
+            document.getElementById('zipError').classList.remove('hidden');
             isValid = false;
         } else {
+            document.getElementById('zipError').classList.add('hidden');
+        }
+
+        const repoUrl = repoUrlInput ? repoUrlInput.value.trim() : '';
+        const githubPattern = /^https:\/\/github\.com\/[\w-]+\/[\w.-]+$/;
+        if (repoUrl && !githubPattern.test(repoUrl)) {
+            repoUrlInput.classList.add('border-red-500');
+            document.getElementById('repoUrlError').classList.remove('hidden');
+            document.getElementById('repoUrlError').querySelector('span').textContent = 'Укажите корректный URL GitHub репозитория';
+            isValid = false;
+        } else if (repoUrlInput) {
             repoUrlInput.classList.remove('border-red-500');
             document.getElementById('repoUrlError').classList.add('hidden');
         }
 
-        if (notificationsCheckbox.checked && !document.getElementById('webhookUrl').value.trim()) {
+        if (notificationsCheckbox && notificationsCheckbox.checked && !document.getElementById('webhookUrl').value.trim()) {
             document.getElementById('webhookError').classList.remove('hidden');
             isValid = false;
         } else {
-            document.getElementById('webhookError').classList.add('hidden');
+            const we = document.getElementById('webhookError');
+            if (we) we.classList.add('hidden');
         }
 
         return isValid;
@@ -343,14 +428,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const formData = new FormData();
             formData.append('name', projectNameInput.value);
-            formData.append('repo_url', repoUrlInput.value);
+            formData.append('repo_url', repoUrlInput ? repoUrlInput.value : '');
             formData.append('branch', document.getElementById('branch').value);
             formData.append('auto_generate', document.getElementById('autoGenerate').checked ? 'on' : 'off');
             formData.append('notifications', notificationsCheckbox.checked ? 'on' : 'off');
             formData.append('webhook_url', document.getElementById('webhookUrl').value);
 
+            if (reactArchiveInput && reactArchiveInput.files[0]) {
+                formData.append('react_archive', reactArchiveInput.files[0]);
+            }
+
             const logoFileInput = document.getElementById('logoFile');
-            if (logoFileInput.files[0]) {
+            if (logoFileInput && logoFileInput.files[0]) {
                 formData.append('logo', logoFileInput.files[0]);
             }
 

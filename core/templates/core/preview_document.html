@@ -1,261 +1,120 @@
 {% extends "core/base.html" %}
 
-{% block title %}
-Предпросмотр документа
-{% endblock %}
+{% block title %}Предпросмотр документа{% endblock %}
 
 {% block content %}
 
-<div style="
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 32px;
-">
+<div style="display: grid; grid-template-columns: 320px 1fr; gap: 32px;">
 
     <!-- Левая колонка -->
     <div>
-
         <div class="card" style="margin-bottom: 24px;">
-            <h3 style="margin-bottom: 24px;">
-                PDF Документ
-            </h3>
-
+            <h3 style="margin-bottom: 24px;">PDF Документ</h3>
             <p><strong>{{ project.name }}</strong></p>
-
-            <p style="margin-top: 16px;">
-                Версия: 1.0
-            </p>
-
-            <p>
-                Инструкций: {{ project.instructions_count }}
-            </p>
+            <p style="margin-top: 16px;">Версия: 1.0</p>
+            <p>Инструкций: {{ project.instructions_count }}</p>
         </div>
 
         <div class="card">
-            <h3 style="margin-bottom: 24px;">
-                Действия
-            </h3>
-
-            <button class="btn-primary" style="width:100%;">
-                Скачать PDF
-            </button>
-
-            <button class="btn-outline"
-                    style="width:100%; margin-top:12px;">
-                Скачать Word
-            </button>
-
+            <h3 style="margin-bottom: 24px;">Действия</h3>
+            <button class="btn-primary" style="width:100%;">Скачать PDF</button>
+            <button class="btn-outline" style="width:100%; margin-top:12px;">Скачать Word</button>
         </div>
-
     </div>
 
     <!-- Viewer -->
     <div>
 
-        <div class="card" style="
-            margin-bottom: 24px;
-            padding: 20px 32px;
-        ">
+        <!-- Навигация -->
+        <div class="card" style="margin-bottom: 24px; padding: 20px 32px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:16px;">
+                    {% if prev_page %}
+                        <a href="?page={{ prev_page }}" class="btn-outline" style="text-decoration:none;">←</a>
+                    {% else %}
+                        <button class="btn-outline" disabled style="opacity:0.4;">←</button>
+                    {% endif %}
 
-            <div style="
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-            ">
+                    <span>Страница {{ current_page }} из {{ total_pages }}</span>
 
-                <div style="
-                    display:flex;
-                    align-items:center;
-                    gap:16px;
-                ">
-
-                    <button class="btn-outline">
-                        ←
-                    </button>
-
-                    <span>
-                        Страница 1 из {{ document_pages|length }}
-                    </span>
-
-                    <button class="btn-outline">
-                        →
-                    </button>
-
+                    {% if next_page %}
+                        <a href="?page={{ next_page }}" class="btn-outline" style="text-decoration:none;">→</a>
+                    {% else %}
+                        <button class="btn-outline" disabled style="opacity:0.4;">→</button>
+                    {% endif %}
                 </div>
-
-                <div>
-                    100%
-                </div>
-
+                <div>100%</div>
             </div>
-
         </div>
 
-        <div class="card" style="
-            min-height: 900px;
-            padding: 80px;
-            text-align: center;
-        ">
+        <!-- Страница документа -->
+        <div class="card" style="min-height: 900px; padding: 80px;">
 
-            {% with cover=document_pages.0 %}
+            {% if current_page_data.page_type == 'cover' %}
 
-                <p style="
-                    letter-spacing: 4px;
-                    color: #6B7280;
-                    margin-bottom: 60px;
-                ">
-                    РУКОВОДСТВО ПОЛЬЗОВАТЕЛЯ
-                </p>
+                <div style="text-align:center; padding-top: 100px;">
+                    <p style="letter-spacing: 4px; color: #6B7280; margin-bottom: 60px; text-transform:uppercase;">
+                        Руководство пользователя
+                    </p>
+                    <h1 style="font-size: 48px; font-weight: 700; margin-bottom: 40px;">
+                        {{ current_page_data.title }}
+                    </h1>
+                    <p style="font-size: 24px; color: #6B7280; margin-bottom: 120px;">
+                        {{ current_page_data.subtitle }}
+                    </p>
+                    <p style="margin-bottom: 8px;">Версия {{ current_page_data.version }}</p>
+                    <p>{{ current_page_data.generated_date }}</p>
+                    <div style="margin-top: 260px; color: #9CA3AF;">
+                        Сгенерировано автоматически сервисом <strong>{{ current_page_data.generated_by }}</strong>
+                    </div>
+                </div>
 
-                <h1 style="
-                    font-size: 48px;
-                    font-weight: 700;
-                    margin-bottom: 40px;
-                ">
-                    {{ cover.title }}
+            {% elif current_page_data.page_type == 'contents' %}
+
+                <h1 style="font-size: 40px; font-weight: 700; margin-bottom: 60px;">
+                    {{ current_page_data.title }}
                 </h1>
 
-                <p style="
-                    font-size: 24px;
-                    color: #6B7280;
-                    margin-bottom: 120px;
-                ">
-                    {{ cover.subtitle }}
-                </p>
+                {% for item in current_page_data.items %}
+                    <div style="display:flex; justify-content:space-between; padding: 20px 0; border-bottom: 1px solid #E5E7EB; font-size: 20px;">
+                        <span>{{ forloop.counter }}. {{ item.title }}</span>
+                        <span>{{ item.page }}</span>
+                    </div>
+                {% endfor %}
 
-                <p style="margin-bottom: 8px;">
-                    Версия {{ cover.version }}
-                </p>
+            {% elif current_page_data.page_type == 'instruction' %}
 
-                <p>
-                    {{ cover.generated_date }}
-                </p>
+                <h1 style="font-size: 36px; font-weight: 700; margin-bottom: 12px; border-bottom: 2px solid #E5E7EB; padding-bottom: 20px;">
+                    {{ current_page_data.title }}
+                </h1>
 
-                <div style="
-                    margin-top: 260px;
-                    color: #9CA3AF;
-                ">
-                    Сгенерировано автоматически сервисом
-                    <strong>{{ cover.generated_by }}</strong>
-                </div>
+                {% if current_page_data.url %}
+                    <div style="margin-bottom: 40px; color: #6B7280; font-size: 14px;">
+                        URL: {{ current_page_data.url }}
+                    </div>
+                {% endif %}
 
-            {% endwith %}
+                {% for step in current_page_data.steps %}
+                    <div style="margin-bottom: 36px;">
+                        <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 10px; color: #111827;">
+                            Шаг {{ forloop.counter }}
+                        </h2>
+                        <p style="line-height: 1.8; color: #374151;">
+                            {{ step }}
+                        </p>
+                    </div>
+                {% endfor %}
 
-        </div>
+                {% if current_page_data.tip %}
+                    <div style="margin-top: 60px; padding: 24px; background: #EFF6FF; border-left: 4px solid #2563EB; border-radius: 8px;">
+                        <strong>Полезный совет</strong>
+                        <p style="margin-top: 12px;">{{ current_page_data.tip }}</p>
+                    </div>
+                {% endif %}
 
-        {% with contents=document_pages.1 %}
-
-    <div class="card" style="
-        min-height: 900px;
-        padding: 80px;
-        margin-top: 32px;
-    ">
-
-        <h1 style="
-            font-size: 40px;
-            font-weight: 700;
-            margin-bottom: 60px;
-        ">
-            {{ contents.title }}
-        </h1>
-
-        {% for item in contents.items %}
-
-            <div style="
-                display: flex;
-                justify-content: space-between;
-                padding: 20px 0;
-                border-bottom: 1px solid #E5E7EB;
-                font-size: 20px;
-            ">
-
-                <span>
-                    {{ item.title }}
-                </span>
-
-                <span>
-                    {{ item.page }}
-                </span>
-
-            </div>
-
-        {% endfor %}
-
-    </div>
-
-    {% endwith %}
-
-      {% with instruction=document_pages.2 %}
-
-<div class="card" style="
-    min-height: 900px;
-    padding: 80px;
-    margin-top: 32px;
-">
-
-    <h1 style="
-        font-size: 40px;
-        font-weight: 700;
-        margin-bottom: 24px;
-    ">
-        {{ instruction.title }}
-    </h1>
-
-    {% if instruction.url %}
-        <div style="
-            margin-bottom: 48px;
-            color: #6B7280;
-        ">
-            URL: {{ instruction.url }}
-        </div>
-    {% endif %}
-
-    {% for step in instruction.steps %}
-
-        <div style="
-            margin-bottom: 40px;
-        ">
-
-            <h2 style="
-                font-size: 24px;
-                font-weight: 600;
-                margin-bottom: 16px;
-            ">
-                Шаг {{ forloop.counter }}
-            </h2>
-
-            <p style="
-                line-height: 1.8;
-                color: #374151;
-            ">
-                {{ step }}
-            </p>
+            {% endif %}
 
         </div>
-
-    {% endfor %}
-
-    {% if instruction.tip %}
-        <div style="
-            margin-top: 60px;
-            padding: 24px;
-            background: #EFF6FF;
-            border-left: 4px solid #2563EB;
-            border-radius: 8px;
-        ">
-
-            <strong>Полезный совет</strong>
-
-            <p style="margin-top: 12px;">
-                {{ instruction.tip }}
-            </p>
-
-        </div>
-    {% endif %}
-
-</div>
-
-{% endwith %}
 
     </div>
 
