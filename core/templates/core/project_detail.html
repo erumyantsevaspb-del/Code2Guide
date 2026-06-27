@@ -410,8 +410,14 @@
                     clearInterval(interval);
                     const elapsed = stopTimer();
                     generationStatus.classList.add('hidden');
-                    finalTimeEl.textContent = elapsed;
-                    generationSuccess.classList.remove('hidden');
+                    if (statusData.status === 'failed') {
+                        errorMessage.textContent = 'Скриншоты не удалось сделать. Инструкции доступны без скриншотов.';
+                        generationError.classList.remove('hidden');
+                        generateBtn.disabled = false;
+                    } else {
+                        finalTimeEl.textContent = elapsed;
+                        generationSuccess.classList.remove('hidden');
+                    }
                     setTimeout(() => location.reload(), 2000);
                 } else if (Date.now() - pollStart > maxWait) {
                     clearInterval(interval);

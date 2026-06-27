@@ -59,8 +59,21 @@ def take_route_screenshots(source_path, routes, project_id):
     dev_script = _detect_dev_script(source_path)
     print(f"Используем скрипт: {dev_script}")
 
+    # Next.js использует -p, Vite — --port
+    import json as _json
+    try:
+        pkg_scripts = _json.loads((Path(source_path) / 'package.json').read_text()).get('scripts', {})
+        is_nextjs = 'next' in pkg_scripts.get(dev_script, '')
+    except Exception:
+        is_nextjs = False
+
+    if is_nextjs:
+        port_args = ['-p', str(port)]
+    else:
+        port_args = ['--port', str(port), '--host', '0.0.0.0']
+
     server = subprocess.Popen(
-        [NPM, 'run', dev_script, '--', '--port', str(port), '--host', '0.0.0.0'],
+        [NPM, 'run', dev_script, '--'] + port_args,
         cwd=source_path,
         env=env,
     )
@@ -85,7 +98,10 @@ def take_route_screenshots(source_path, routes, project_id):
                 safe_name = _safe_filename(route_name)
                 screenshot_path = screenshots_dir / f"{safe_name}.png"
 
-                url = f"http://127.0.0.1:{port}/#/{route_path.lstrip('/')}"
+                if is_nextjs:
+                    url = f"http://127.0.0.1:{port}{route_path}"
+                else:
+                    url = f"http://127.0.0.1:{port}/#/{route_path.lstrip('/')}"
 
                 try:
                     page.goto(url, wait_until='networkidle', timeout=15000)

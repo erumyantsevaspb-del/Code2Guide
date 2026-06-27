@@ -15,6 +15,7 @@ from .services.react_parser import (
     parse_routes,
     parse_component_imports,
     parse_react_admin_routes,
+    parse_nextjs_routes,
 )
 
 from .services.jsx_parser import (
@@ -345,15 +346,21 @@ def generate_instruction_api(request, project_id):
             routes_path = Path(source_path) / "src" / "routes.js"
 
             if routes_path.exists():
-                # CoreUI-style routing
+                # CoreUI: src/routes.js
                 routes = parse_routes(routes_path)
                 imports = parse_component_imports(routes_path)
+            elif (Path(source_path) / 'next.config.js').exists() or (Path(source_path) / 'next.config.ts').exists() or (Path(source_path) / 'next.config.mjs').exists():
+                # Next.js App Router
+                routes = parse_nextjs_routes(source_path)
+                imports = {}
+                if not routes:
+                    raise Exception("Next.js проект найден, но страницы не обнаружены")
             else:
-                # react-admin style: ищем <Resource name="...">
+                # React Admin: ищем <Resource name="...">
                 routes = parse_react_admin_routes(source_path)
                 imports = {}
                 if not routes:
-                    raise Exception("Не удалось найти маршруты. Поддерживаются проекты с src/routes.js или React Admin (<Resource>)")
+                    raise Exception("Не удалось найти маршруты. Поддерживаются: CoreUI (routes.js), React Admin (<Resource>), Next.js (app/)")
 
             instruction_data = []
 
@@ -422,11 +429,13 @@ def generate_instruction_api(request, project_id):
 
 @login_required
 def generation_status_api(request, generation_id):
-    """Возвращает статус скриншотов для генерации."""
+    """Возвращает статус генерации."""
     generation = get_object_or_404(Generation, id=generation_id, user=request.user)
-    data = generation.instruction_data or []
-    screenshots_done = any(item.get('screenshot') for item in data)
-    return JsonResponse({'screenshots_done': screenshots_done})
+    return JsonResponse({
+        'status': generation.status,
+        'screenshots_done': generation.status in ('completed', 'failed'),
+        'error_message': generation.error_message or '',
+    })
 
 
 @login_required
