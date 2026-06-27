@@ -14,6 +14,10 @@ def _detect_dev_script(source_path):
     pkg = Path(source_path) / 'package.json'
     try:
         scripts = json.loads(pkg.read_text(encoding='utf-8')).get('scripts', {})
+        # Next.js: next start требует build, используем dev
+        start_cmd = scripts.get('start', '')
+        if 'next start' in start_cmd and 'dev' in scripts:
+            return 'dev'
         for name in ('start', 'dev', 'serve'):
             if name in scripts:
                 return name
@@ -80,7 +84,7 @@ def take_route_screenshots(source_path, routes, project_id):
 
     try:
         # Ждём пока сервер запустится
-        _wait_for_port(port, timeout=300)
+        _wait_for_port(port, timeout=300, process=server)
         print(f"Сервер запущен на порту {port}")
         time.sleep(3)  # доп. пауза для полной загрузки
 
@@ -126,10 +130,12 @@ def take_route_screenshots(source_path, routes, project_id):
     return screenshots
 
 
-def _wait_for_port(port, timeout=300):
+def _wait_for_port(port, timeout=300, process=None):
     import urllib.request
     start = time.time()
     while time.time() - start < timeout:
+        if process is not None and process.poll() is not None:
+            raise RuntimeError(f"Dev-сервер завершился с кодом {process.returncode}")
         try:
             urllib.request.urlopen(f'http://127.0.0.1:{port}/', timeout=2)
             return
