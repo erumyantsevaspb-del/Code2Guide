@@ -25,6 +25,9 @@
                 <div class="status-dot"></div>
                 <span class="status-text">Активен</span>
             </div>
+            <button onclick="confirmDeleteProject()" class="text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 rounded-lg px-3 py-1.5 text-sm transition-colors">
+                <i class="fas fa-trash-alt mr-1"></i> Удалить проект
+            </button>
         </div>
     </div>
     {% if project.description %}
@@ -285,6 +288,24 @@
 
 <script>
     const projectId = {{ project.id }};
+
+    async function confirmDeleteProject() {
+        if (!confirm('Удалить проект «{{ project.name }}» и все его генерации? Это действие нельзя отменить.')) return;
+        try {
+            const res = await fetch(`/api/projects/${projectId}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            });
+            if (res.ok) {
+                window.location.href = '/';
+            } else {
+                alert('Ошибка при удалении проекта');
+            }
+        } catch (e) {
+            alert('Ошибка соединения');
+        }
+    }
+    window.confirmDeleteProject = confirmDeleteProject;
     const generateBtn = document.getElementById('generateBtn');
     const generationStatus = document.getElementById('generationStatus');
     const generationSuccess = document.getElementById('generationSuccess');

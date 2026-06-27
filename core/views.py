@@ -149,6 +149,15 @@ def history(request):
 
 @login_required
 @require_POST
+def delete_project_api(request, project_id):
+    """Удаление проекта и всех его генераций"""
+    project = get_object_or_404(Project, id=project_id, user=request.user)
+    project.delete()
+    return JsonResponse({'success': True})
+
+
+@login_required
+@require_POST
 def create_project_api(request):
     """API для создания проекта (привязан к пользователю)"""
     try:
