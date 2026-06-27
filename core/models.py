@@ -29,6 +29,12 @@ class Project(models.Model):
         verbose_name="Описание"
     )
 
+    business_context = models.TextField(
+        blank=True,
+        verbose_name="Бизнес-контекст",
+        help_text="Для кого эта система, что делают пользователи, какие задачи решает"
+    )
+
     # Связь с пользователем
     user = models.ForeignKey(
         User,

@@ -179,9 +179,12 @@ def create_project_api(request):
                 status=400
             )
 
+        business_context = request.POST.get('business_context', '').strip()
+
         project = Project.objects.create(
             name=name,
             description=f"Репозиторий: {repo_url}\nВетка: {branch}",
+            business_context=business_context,
             instructions_count=0,
             user=request.user,
             repo_url=repo_url,

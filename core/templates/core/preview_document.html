@@ -79,6 +79,14 @@
                     </div>
                 </div>
 
+            {% elif current_page_data.page_type == 'about' %}
+
+                <h1 style="font-size: 40px; font-weight: 700; margin-bottom: 40px;">
+                    {{ current_page_data.title }}
+                </h1>
+
+                <div style="font-size: 20px; line-height: 1.8; color: #374151; white-space: pre-wrap;">{{ current_page_data.content }}</div>
+
             {% elif current_page_data.page_type == 'contents' %}
 
                 <h1 style="font-size: 40px; font-weight: 700; margin-bottom: 60px;">
