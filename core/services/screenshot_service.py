@@ -9,6 +9,19 @@ from django.conf import settings
 NPM = 'npm.cmd' if sys.platform == 'win32' else 'npm'
 
 
+def _detect_dev_script(source_path):
+    import json
+    pkg = Path(source_path) / 'package.json'
+    try:
+        scripts = json.loads(pkg.read_text(encoding='utf-8')).get('scripts', {})
+        for name in ('start', 'dev', 'serve'):
+            if name in scripts:
+                return name
+    except Exception:
+        pass
+    return 'start'
+
+
 def _find_free_port():
     import socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -42,8 +55,12 @@ def take_route_screenshots(source_path, routes, project_id):
     env['BROWSER'] = 'none'  # не открывать браузер
     env['CI'] = 'false'
 
+    # Определяем скрипт запуска: start или dev
+    dev_script = _detect_dev_script(source_path)
+    print(f"Используем скрипт: {dev_script}")
+
     server = subprocess.Popen(
-        [NPM, 'start', '--', '--port', str(port), '--host', '0.0.0.0'],
+        [NPM, 'run', dev_script, '--', '--port', str(port), '--host', '0.0.0.0'],
         cwd=source_path,
         env=env,
     )

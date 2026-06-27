@@ -35,7 +35,12 @@
                         <button class="btn-outline" disabled style="opacity:0.4;">←</button>
                     {% endif %}
 
-                    <span>Страница {{ current_page }} из {{ total_pages }}</span>
+                    <span style="display:flex; align-items:center; gap:8px;">
+                        Страница
+                        <input id="pageInput" type="number" value="{{ current_page }}" min="1" max="{{ total_pages }}"
+                               style="width:56px; text-align:center; border:1px solid #D1D5DB; border-radius:6px; padding:2px 6px; font-size:14px;">
+                        из {{ total_pages }}
+                    </span>
 
                     {% if next_page %}
                         <a href="?page={{ next_page }}" class="btn-outline" style="text-decoration:none;">→</a>
@@ -43,11 +48,16 @@
                         <button class="btn-outline" disabled style="opacity:0.4;">→</button>
                     {% endif %}
                 </div>
-                <div>100%</div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button onclick="changeZoom(-10)" style="padding:4px 10px; border-radius:6px; border:1px solid #D1D5DB; cursor:pointer; font-size:16px;">−</button>
+                    <span id="zoomLabel" style="min-width:44px; text-align:center; font-size:14px;">100%</span>
+                    <button onclick="changeZoom(+10)" style="padding:4px 10px; border-radius:6px; border:1px solid #D1D5DB; cursor:pointer; font-size:16px;">+</button>
+                </div>
             </div>
         </div>
 
         <!-- Страница документа -->
+        <div id="pageWrapper" style="transform-origin: top center; transition: transform 0.2s;">
         <div class="card" style="min-height: 900px; padding: 80px;">
 
             {% if current_page_data.page_type == 'cover' %}
@@ -76,10 +86,10 @@
                 </h1>
 
                 {% for item in current_page_data.items %}
-                    <div style="display:flex; justify-content:space-between; padding: 20px 0; border-bottom: 1px solid #E5E7EB; font-size: 20px;">
+                    <a href="?page={{ item.page }}" style="display:flex; justify-content:space-between; padding: 20px 0; border-bottom: 1px solid #E5E7EB; font-size: 20px; text-decoration:none; color:inherit;">
                         <span>{{ forloop.counter }}. {{ item.title }}</span>
                         <span>{{ item.page }}</span>
-                    </div>
+                    </a>
                 {% endfor %}
 
             {% elif current_page_data.page_type == 'instruction' %}
@@ -123,9 +133,40 @@
             {% endif %}
 
         </div>
+        </div><!-- /pageWrapper -->
 
     </div>
 
 </div>
+
+<script>
+// Переход на страницу по вводу номера
+const pageInput = document.getElementById('pageInput');
+pageInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') goToPage(this.value);
+});
+pageInput.addEventListener('blur', function() {
+    goToPage(this.value);
+});
+function goToPage(val) {
+    const page = Math.min({{ total_pages }}, Math.max(1, parseInt(val) || 1));
+    if (page !== {{ current_page }}) window.location.href = '?page=' + page;
+}
+
+let currentZoom = parseInt(localStorage.getItem('previewZoom') || '100');
+
+function applyZoom() {
+    document.getElementById('pageWrapper').style.transform = `scale(${currentZoom / 100})`;
+    document.getElementById('zoomLabel').textContent = currentZoom + '%';
+}
+
+function changeZoom(delta) {
+    currentZoom = Math.min(150, Math.max(50, currentZoom + delta));
+    localStorage.setItem('previewZoom', currentZoom);
+    applyZoom();
+}
+
+applyZoom();
+</script>
 
 {% endblock %}

@@ -57,17 +57,22 @@ def safe_extract(archive, target_dir):
 
 
 def find_react_project_root(extracted_dir):
-    direct_routes = extracted_dir / "src" / "routes.js"
-
-    if direct_routes.exists():
-        return extracted_dir
-
+    # Сначала ищем CoreUI-style routes.js
     route_files = sorted(
         extracted_dir.rglob("src/routes.js"),
         key=lambda path: len(path.parts),
     )
-
     if route_files:
         return route_files[0].parent.parent
+
+    # Потом ищем ближайший package.json (любой React-проект)
+    package_files = sorted(
+        extracted_dir.rglob("package.json"),
+        key=lambda path: len(path.parts),
+    )
+    # Фильтруем node_modules
+    package_files = [p for p in package_files if 'node_modules' not in p.parts]
+    if package_files:
+        return package_files[0].parent
 
     return extracted_dir

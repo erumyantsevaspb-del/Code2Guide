@@ -14,6 +14,7 @@ from pathlib import Path
 from .services.react_parser import (
     parse_routes,
     parse_component_imports,
+    parse_react_admin_routes,
 )
 
 from .services.jsx_parser import (
@@ -130,7 +131,7 @@ def account_settings(request):
 @login_required
 def history(request):
     """Страница истории генераций"""
-    generations = Generation.objects.filter(user=request.user).order_by('-created_at')
+    generations = Generation.objects.filter(user=request.user).select_related('project').order_by('-created_at')
 
     user_data = {
         'name': request.user.get_full_name() or request.user.username,
@@ -334,11 +335,16 @@ def generate_instruction_api(request, project_id):
         try:
             routes_path = Path(source_path) / "src" / "routes.js"
 
-            if not routes_path.exists():
-                raise Exception("Файл routes.js не найден в архиве")
-
-            routes = parse_routes(routes_path)
-            imports = parse_component_imports(routes_path)
+            if routes_path.exists():
+                # CoreUI-style routing
+                routes = parse_routes(routes_path)
+                imports = parse_component_imports(routes_path)
+            else:
+                # react-admin style: ищем <Resource name="...">
+                routes = parse_react_admin_routes(source_path)
+                imports = {}
+                if not routes:
+                    raise Exception("Не удалось найти маршруты. Поддерживаются проекты с src/routes.js или React Admin (<Resource>)")
 
             instruction_data = []
 
