@@ -94,6 +94,14 @@
                     </div>
                 {% endif %}
 
+                {% if current_page_data.screenshot %}
+                <div style="margin-bottom: 40px; border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden;">
+                    <img src="/media/{{ current_page_data.screenshot }}"
+                         alt="Скриншот {{ current_page_data.title }}"
+                         style="width: 100%; display: block;">
+                </div>
+                {% endif %}
+
                 {% for step in current_page_data.steps %}
                     <div style="margin-bottom: 36px;">
                         <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 10px; color: #111827;">

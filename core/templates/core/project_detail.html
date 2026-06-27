@@ -47,16 +47,18 @@
                 <span>Запустить генерацию</span>
             </button>
             <div id="generationStatus" class="mt-4 hidden">
-                <div class="flex items-center gap-3 text-blue-600">
+                <div class="flex items-center gap-3 text-blue-600 mb-1">
                     <i class="fas fa-spinner fa-spin"></i>
-                    <span>Генерация запущена...</span>
+                    <span id="statusText">Генерируем инструкции...</span>
                 </div>
+                <div class="text-sm text-gray-400 ml-7">Время: <span id="timer">00:00</span></div>
             </div>
             <div id="generationSuccess" class="mt-4 hidden">
                 <div class="flex items-center gap-3 text-green-600">
                     <i class="fas fa-check-circle"></i>
-                    <span>Генерация успешно завершена!</span>
+                    <span id="successText">Генерация успешно завершена!</span>
                 </div>
+                <div class="text-sm text-gray-400 ml-7 mt-1">Затраченное время: <span id="finalTime">—</span></div>
             </div>
             <div id="generationError" class="mt-4 hidden">
                 <div class="flex items-center gap-3 text-red-600">
@@ -134,7 +136,18 @@
 
 <!-- История генераций проекта -->
 <div class="mt-8">
-    <h2 class="text-xl font-semibold text-[#1F2937] mb-4">История генераций проекта</h2>
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-[#1F2937]">История генераций проекта</h2>
+        <div class="flex items-center gap-2 text-sm text-gray-600">
+            <span>Строк на странице:</span>
+            <select id="pageSizeSelect" class="border border-gray-300 rounded px-2 py-1 text-sm">
+                <option value="5" selected>5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+    </div>
     <div class="table-container">
         <table>
             <thead>
@@ -142,13 +155,14 @@
                     <th>Дата</th>
                     <th>Коммит</th>
                     <th>Компоненты</th>
+                    <th>Время генерации</th>
                     <th>Статус</th>
                     <th>Действия</th>
                 </tr>
             </thead>
             <tbody id="generationsTableBody">
                 {% for gen in project_generations %}
-                <tr>
+                <tr class="gen-row">
                     <td>{{ gen.created_at|date:"d E Y, H:i" }}</td>
                     <td>
                         <code class="text-xs font-mono">{{ gen.commit_hash|slice:":8" }}</code>
@@ -156,11 +170,20 @@
                     </td>
                     <td>{{ gen.components_count }}</td>
                     <td>
+                        {% if gen.duration_seconds %}
+                            {% with mm=gen.duration_seconds|divisibleby:60 %}
+                            <span data-seconds="{{ gen.duration_seconds }}" class="duration-fmt">{{ gen.duration_seconds }}</span>
+                            {% endwith %}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>
                         <span class="status-{{ gen.status }}">
                             {% if gen.status == 'completed' %}
                                 <i class="fas fa-check-circle"></i> Завершено
-                            {% elif gen.status == 'in_progress' %}
-                                <i class="fas fa-spinner fa-pulse"></i> В процессе
+                            {% elif gen.status == 'processing' %}
+                                <i class="fas fa-spinner fa-pulse"></i> Скриншоты...
                             {% elif gen.status == 'failed' %}
                                 <i class="fas fa-exclamation-circle"></i> Ошибка
                             {% else %}
@@ -185,7 +208,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center py-8 text-gray-500">
+                    <td colspan="6" class="text-center py-8 text-gray-500">
                         История генераций пуста. Запустите первую генерацию!
                     </td>
                 </tr>
@@ -193,7 +216,72 @@
             </tbody>
         </table>
     </div>
+    <!-- Пагинация -->
+    <div class="flex items-center justify-between mt-4 text-sm text-gray-600">
+        <span id="paginationInfo"></span>
+        <div class="flex gap-2" id="paginationControls"></div>
+    </div>
 </div>
+
+<script>
+    // Пагинация таблицы генераций
+    const rows = Array.from(document.querySelectorAll('.gen-row'));
+    let currentPage = 1;
+    let pageSize = 5;
+
+    function renderTable() {
+        const total = rows.length;
+        const totalPages = Math.max(1, Math.ceil(total / pageSize));
+        currentPage = Math.min(currentPage, totalPages);
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+
+        rows.forEach((row, i) => {
+            row.style.display = (i >= start && i < end) ? '' : 'none';
+        });
+
+        document.getElementById('paginationInfo').textContent =
+            total > 0 ? `Показано ${start + 1}–${Math.min(end, total)} из ${total}` : '';
+
+        const controls = document.getElementById('paginationControls');
+        controls.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        const btn = (label, page, disabled) => {
+            const b = document.createElement('button');
+            b.textContent = label;
+            b.disabled = disabled;
+            b.className = `px-3 py-1 rounded border ${disabled ? 'text-gray-300 border-gray-200 cursor-default' : 'border-gray-300 hover:bg-gray-100'}`;
+            b.addEventListener('click', () => { currentPage = page; renderTable(); });
+            return b;
+        };
+
+        controls.appendChild(btn('←', currentPage - 1, currentPage === 1));
+        for (let p = 1; p <= totalPages; p++) {
+            const b = btn(p, p, false);
+            if (p === currentPage) b.className = 'px-3 py-1 rounded border border-[#2563EB] bg-[#2563EB] text-white';
+            controls.appendChild(b);
+        }
+        controls.appendChild(btn('→', currentPage + 1, currentPage === totalPages));
+    }
+
+    document.getElementById('pageSizeSelect').addEventListener('change', function() {
+        pageSize = parseInt(this.value);
+        currentPage = 1;
+        renderTable();
+    });
+
+    renderTable();
+
+    // Форматируем время генерации в mm:ss
+    document.querySelectorAll('.duration-fmt').forEach(el => {
+        const s = parseInt(el.dataset.seconds);
+        const mm = String(Math.floor(s / 60)).padStart(2, '0');
+        const ss = String(s % 60).padStart(2, '0');
+        el.textContent = `${mm}:${ss}`;
+    });
+</script>
 
 <script>
     const projectId = {{ project.id }};
@@ -202,14 +290,40 @@
     const generationSuccess = document.getElementById('generationSuccess');
     const generationError = document.getElementById('generationError');
     const errorMessage = document.getElementById('errorMessage');
-    
+    const statusText = document.getElementById('statusText');
+    const timerEl = document.getElementById('timer');
+    const finalTimeEl = document.getElementById('finalTime');
+
+    let timerInterval = null;
+    let startTime = null;
+
+    function startTimer() {
+        startTime = Date.now();
+        timerInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const ss = String(elapsed % 60).padStart(2, '0');
+            timerEl.textContent = `${mm}:${ss}`;
+        }, 1000);
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const ss = String(elapsed % 60).padStart(2, '0');
+        return `${mm}:${ss}`;
+    }
+
     // Генерация инструкции
     generateBtn.addEventListener('click', async function() {
         generateBtn.disabled = true;
         generationStatus.classList.remove('hidden');
         generationSuccess.classList.add('hidden');
         generationError.classList.add('hidden');
-        
+        statusText.textContent = 'Генерируем инструкции...';
+        startTimer();
+
         try {
             const response = await fetch(`/api/projects/${projectId}/generate/`, {
                 method: 'POST',
@@ -218,21 +332,18 @@
                     'Content-Type': 'application/json'
                 },
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok) {
-                generationStatus.classList.add('hidden');
-                generationSuccess.classList.remove('hidden');
-                
-                // Обновляем статистику
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
+                statusText.textContent = 'Делаем скриншоты...';
+                const generationId = data.generation.id;
+                pollScreenshots(generationId);
             } else {
                 throw new Error(data.error || 'Ошибка генерации');
             }
         } catch (error) {
+            const elapsed = stopTimer();
             generationStatus.classList.add('hidden');
             errorMessage.textContent = error.message;
             generationError.classList.remove('hidden');
@@ -265,6 +376,37 @@
         alert('Скачивание PDF документа (последняя версия)');
     });
     
+    // Опрашивает сервер пока не появятся скриншоты
+    async function pollScreenshots(generationId) {
+        const maxWait = 15 * 60 * 1000; // 15 минут
+        const pollStart = Date.now();
+
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/generations/${generationId}/status/`);
+                const statusData = await res.json();
+                if (statusData.screenshots_done) {
+                    clearInterval(interval);
+                    const elapsed = stopTimer();
+                    generationStatus.classList.add('hidden');
+                    finalTimeEl.textContent = elapsed;
+                    generationSuccess.classList.remove('hidden');
+                    setTimeout(() => location.reload(), 2000);
+                } else if (Date.now() - pollStart > maxWait) {
+                    clearInterval(interval);
+                    stopTimer();
+                    generationStatus.classList.add('hidden');
+                    errorMessage.textContent = 'Скриншоты не успели сгенерироваться за 15 минут. Инструкции доступны без скриншотов.';
+                    generationError.classList.remove('hidden');
+                    generateBtn.disabled = false;
+                    setTimeout(() => location.reload(), 3000);
+                }
+            } catch (e) {
+                // молча игнорируем ошибки сети
+            }
+        }, 10000);
+    }
+
     // Функция для получения CSRF токена
     function getCookie(name) {
         let cookieValue = null;

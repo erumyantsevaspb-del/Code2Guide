@@ -40,6 +40,7 @@ def build_document_pages(project, instructions):
             "title": instruction["name"],
             "url": instruction.get("path", ""),
             "steps": instruction["instructions"],
+            "screenshot": instruction.get("screenshot"),
             "tip": "",
         })
 

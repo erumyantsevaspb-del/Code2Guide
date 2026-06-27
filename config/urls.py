@@ -27,6 +27,7 @@ urlpatterns = [
     # API
     path('api/projects/create/', views.create_project_api, name='create_project_api'),
     path('api/projects/<int:project_id>/generate/', views.generate_instruction_api, name='generate_instruction'),
+    path('api/generations/<int:generation_id>/status/', views.generation_status_api, name='generation_status_api'),
     path('api/profile/update/', views.update_profile_api, name='update_profile_api'),
     path('api/change-password/', views.change_password_api, name='change_password_api'),
 ]

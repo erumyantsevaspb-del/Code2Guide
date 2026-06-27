@@ -24,6 +24,7 @@ from .services.jsx_parser import (
 from .services.instruction_generator import generate_instructions_with_yandex
 from .services.document_builder import build_document_pages
 from .services.source_loader import prepare_project_source
+from .services.screenshot_service import take_route_screenshots
 
 
 def register_view(request):
@@ -286,6 +287,36 @@ def project_detail(request, project_id):
     return render(request, 'core/project_detail.html', context)
 
 
+def _take_screenshots_background(generation_id, source_path, cleanup_path, routes, project_id):
+    """Делает скриншоты в фоновом потоке и обновляет генерацию."""
+    import django
+    try:
+        screenshots = take_route_screenshots(source_path, routes, project_id)
+        generation = Generation.objects.get(id=generation_id)
+        data = generation.instruction_data or []
+        for item in data:
+            item['screenshot'] = screenshots.get(item['path'])
+        generation.instruction_data = data
+        generation.status = 'completed'
+        generation.completed_at = timezone.now()
+        generation.duration_seconds = int((generation.completed_at - generation.created_at).total_seconds())
+        generation.save()
+        print(f"Скриншоты готовы: {len(screenshots)} шт.")
+    except Exception as e:
+        print(f"Ошибка скриншотов в фоне: {e}")
+        try:
+            generation = Generation.objects.get(id=generation_id)
+            generation.status = 'failed'
+            generation.error_message = str(e)
+            generation.completed_at = timezone.now()
+            generation.duration_seconds = int((generation.completed_at - generation.created_at).total_seconds())
+            generation.save()
+        except Exception:
+            pass
+    finally:
+        shutil.rmtree(cleanup_path, ignore_errors=True)
+
+
 @login_required
 @require_POST
 def generate_instruction_api(request, project_id):
@@ -332,6 +363,7 @@ def generate_instruction_api(request, project_id):
                     'name': route_name,
                     'path': route_path,
                     'instructions': steps,
+                    'screenshot': None,
                 })
 
             generation = Generation.objects.create(
@@ -341,12 +373,20 @@ def generate_instruction_api(request, project_id):
                 commit_message=f"Генерация инструкции для {project.name}",
                 components_count=len(instruction_data),
                 instruction_data=instruction_data,
-                status='completed',
-                completed_at=timezone.now()
+                status='processing'
             )
 
             project.instructions_count = len(instruction_data)
             project.save()
+
+            # Запускаем скриншоты в фоне
+            import threading
+            thread = threading.Thread(
+                target=_take_screenshots_background,
+                args=(generation.id, source_path, cleanup_path, routes, project.id),
+                daemon=True,
+            )
+            thread.start()
 
             return JsonResponse({
                 'success': True,
@@ -356,13 +396,23 @@ def generate_instruction_api(request, project_id):
                 }
             })
 
-        finally:
+        except Exception:
             shutil.rmtree(cleanup_path, ignore_errors=True)
+            raise
 
     except Exception as e:
         return JsonResponse({
             'error': str(e)
         }, status=500)
+
+@login_required
+def generation_status_api(request, generation_id):
+    """Возвращает статус скриншотов для генерации."""
+    generation = get_object_or_404(Generation, id=generation_id, user=request.user)
+    data = generation.instruction_data or []
+    screenshots_done = any(item.get('screenshot') for item in data)
+    return JsonResponse({'screenshots_done': screenshots_done})
+
 
 @login_required
 def preview_document(request, project_id):

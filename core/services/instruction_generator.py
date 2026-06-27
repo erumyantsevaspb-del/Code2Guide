@@ -94,7 +94,14 @@ def _extract_checkboxes(jsx_content):
         r'<(?:CFormCheck|input[^>]*type=["\']checkbox["\'])[^>]*label=["\']([^"\']+)["\']',
         jsx_content
     )
-    return checks
+    result = []
+    for c in checks:
+        c = c.strip()
+        # пропускаем мусор: числа, точки, JSX
+        if not c or len(c) < 3 or '{' in c or c in ('...', '1', '2', '3'):
+            continue
+        result.append(c)
+    return list(dict.fromkeys(result))[:10]  # не более 10 штук
 
 
 def _extract_buttons(jsx_content):
@@ -106,8 +113,12 @@ def _extract_buttons(jsx_content):
     for btn in buttons:
         btn = re.sub(r'<[^>]+>', '', btn).strip()
         btn = re.sub(r'\s+', ' ', btn)
-        if btn and len(btn) < 40:
-            result.append(btn)
+        # пропускаем JSX-выражения и мусор
+        if not btn or len(btn) >= 40:
+            continue
+        if '{' in btn or '}' in btn or '=>' in btn or btn.startswith('('):
+            continue
+        result.append(btn)
     return list(dict.fromkeys(result))
 
 

@@ -179,6 +179,12 @@ class Generation(models.Model):
         verbose_name="Данные инструкции"
     )
 
+    duration_seconds = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Время генерации (сек)"
+    )
+
     class Meta:
         verbose_name = "Генерация"
         verbose_name_plural = "Генерации"
