@@ -110,6 +110,12 @@ def take_route_screenshots(source_path, routes, project_id):
                 try:
                     page.goto(url, wait_until='networkidle', timeout=15000)
                     time.sleep(1)
+                    final_url = page.url
+                    # Пропускаем если редирект на login/auth страницу
+                    login_keywords = ('login', 'sign-in', 'signin', 'auth', 'logout')
+                    if any(kw in final_url.lower() for kw in login_keywords):
+                        print(f"Пропуск (login redirect): {route_name}")
+                        continue
                     page.screenshot(path=str(screenshot_path), full_page=False)
                     rel_path = f"screenshots/{project_id}/{safe_name}.png"
                     screenshots[route_path] = rel_path
