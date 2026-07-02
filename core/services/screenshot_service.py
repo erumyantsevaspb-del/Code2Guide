@@ -44,6 +44,19 @@ def take_route_screenshots(source_path, routes, project_id):
     screenshots_dir = Path(settings.MEDIA_ROOT) / 'screenshots' / str(project_id)
     screenshots_dir.mkdir(parents=True, exist_ok=True)
 
+    # Проверяем не является ли проект NX monorepo
+    import json as _json_check
+    try:
+        pkg = _json_check.loads((Path(source_path) / 'package.json').read_text(encoding='utf-8', errors='ignore'))
+        scripts = pkg.get('scripts', {})
+        dev_cmd = scripts.get(dev_script, '')
+        if 'nx ' in dev_cmd or 'nx run' in dev_cmd:
+            raise RuntimeError("NX monorepo не поддерживается для локального запуска скриншотов")
+    except RuntimeError:
+        raise
+    except Exception:
+        pass
+
     # Установка зависимостей
     print("Устанавливаем зависимости npm...")
     subprocess.run(
