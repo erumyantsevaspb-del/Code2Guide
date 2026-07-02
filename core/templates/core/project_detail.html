@@ -44,11 +44,26 @@
             <p class="text-gray-600 mb-4">
                 Запустите генерацию документации на основе последнего коммита в репозитории.
             </p>
-            <button id="generateBtn" 
+            <button id="generateBtn"
                     class="bg-[#2563EB] text-white px-6 py-3 rounded-lg hover:bg-[#1d4ed8] transition-colors font-medium flex items-center gap-2">
                 <i class="fas fa-play"></i>
                 <span>Запустить генерацию</span>
             </button>
+
+            <!-- Токен для расширения Chrome -->
+            <div class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fas fa-puzzle-piece text-gray-500"></i>
+                    <span class="text-sm font-medium text-gray-700">Токен для расширения Chrome</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <code class="flex-1 text-xs bg-white border border-gray-200 rounded px-3 py-2 text-gray-600 font-mono truncate" id="apiToken">{{ project.api_token }}</code>
+                    <button onclick="copyToken()" class="text-xs text-[#2563EB] hover:text-[#1d4ed8] border border-[#2563EB] rounded px-3 py-2 whitespace-nowrap transition-colors">
+                        Скопировать
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">Вставьте этот токен в расширение Chrome, чтобы оно знало в какой проект отправлять скриншоты</p>
+            </div>
             <div id="generationStatus" class="mt-4 hidden">
                 <div class="flex items-center gap-3 text-blue-600 mb-1">
                     <i class="fas fa-spinner fa-spin"></i>
@@ -306,6 +321,15 @@
         }
     }
     window.confirmDeleteProject = confirmDeleteProject;
+
+    window.copyToken = function() {
+        const token = document.getElementById('apiToken').textContent;
+        navigator.clipboard.writeText(token).then(() => {
+            const btn = event.target;
+            btn.textContent = 'Скопировано!';
+            setTimeout(() => btn.textContent = 'Скопировать', 2000);
+        });
+    };
     const generateBtn = document.getElementById('generateBtn');
     const generationStatus = document.getElementById('generationStatus');
     const generationSuccess = document.getElementById('generationSuccess');

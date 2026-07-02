@@ -29,6 +29,8 @@ urlpatterns = [
     path('api/projects/<int:project_id>/delete/', views.delete_project_api, name='delete_project_api'),
     path('api/projects/<int:project_id>/generate/', views.generate_instruction_api, name='generate_instruction'),
     path('api/generations/<int:generation_id>/status/', views.generation_status_api, name='generation_status_api'),
+    path('api/extension/screenshot/', views.extension_screenshot_api, name='extension_screenshot_api'),
+    path('api/extension/ping/', views.extension_ping_api, name='extension_ping_api'),
     path('api/profile/update/', views.update_profile_api, name='update_profile_api'),
     path('api/change-password/', views.change_password_api, name='change_password_api'),
 ]

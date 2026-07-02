@@ -35,6 +35,12 @@ class Project(models.Model):
         help_text="Для кого эта система, что делают пользователи, какие задачи решает"
     )
 
+    api_token = models.CharField(
+        max_length=64,
+        blank=True,
+        verbose_name="Токен для расширения Chrome",
+    )
+
     # Связь с пользователем
     user = models.ForeignKey(
         User,

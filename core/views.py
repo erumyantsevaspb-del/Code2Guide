@@ -180,6 +180,7 @@ def create_project_api(request):
                 status=400
             )
 
+        import secrets
         business_context = request.POST.get('business_context', '').strip()
 
         project = Project.objects.create(
@@ -191,6 +192,7 @@ def create_project_api(request):
             repo_url=repo_url,
             react_archive=react_archive,
             branch=branch,
+            api_token=secrets.token_hex(24),
         )
 
         return JsonResponse({
@@ -433,6 +435,70 @@ def generate_instruction_api(request, project_id):
         return JsonResponse({
             'error': str(e)
         }, status=500)
+
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+@require_POST
+def extension_ping_api(request):
+    """Проверяет токен от расширения Chrome."""
+    token = request.POST.get('token') or request.headers.get('X-Project-Token')
+    if not token:
+        return JsonResponse({'error': 'Токен обязателен'}, status=400)
+    try:
+        project = Project.objects.get(api_token=token)
+        return JsonResponse({'success': True, 'project': project.name})
+    except Project.DoesNotExist:
+        return JsonResponse({'error': 'Неверный токен'}, status=403)
+
+
+@csrf_exempt
+@require_POST
+def extension_screenshot_api(request):
+    """Принимает скриншот от расширения Chrome."""
+    token = request.POST.get('token') or request.headers.get('X-Project-Token')
+    page_url = request.POST.get('url', '')
+    screenshot_file = request.FILES.get('screenshot')
+
+    if not token:
+        return JsonResponse({'error': 'Токен обязателен'}, status=400)
+    if not screenshot_file:
+        return JsonResponse({'error': 'Скриншот обязателен'}, status=400)
+
+    try:
+        project = Project.objects.get(api_token=token)
+    except Project.DoesNotExist:
+        return JsonResponse({'error': 'Неверный токен'}, status=403)
+
+    # Сохраняем скриншот
+    from urllib.parse import urlparse
+    path = urlparse(page_url).path.rstrip('/') or '/'
+    safe_name = ''.join(c if c.isalnum() or c in '-_' else '_' for c in path).strip('_') or 'home'
+
+    screenshots_dir = Path(settings.MEDIA_ROOT) / 'screenshots' / str(project.id)
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
+
+    file_path = screenshots_dir / f"{safe_name}.png"
+    with open(file_path, 'wb') as f:
+        for chunk in screenshot_file.chunks():
+            f.write(chunk)
+
+    rel_path = f"screenshots/{project.id}/{safe_name}.png"
+
+    # Обновляем скриншот в последней генерации если есть
+    last_gen = Generation.objects.filter(project=project).order_by('-created_at').first()
+    if last_gen and last_gen.instruction_data:
+        updated = False
+        for item in last_gen.instruction_data:
+            item_path = item.get('path', '').rstrip('/')
+            if item_path == path or (not item_path and path == '/'):
+                item['screenshot'] = rel_path
+                updated = True
+        if updated:
+            last_gen.save()
+
+    return JsonResponse({'success': True, 'saved': rel_path})
+
 
 @login_required
 def generation_status_api(request, generation_id):
