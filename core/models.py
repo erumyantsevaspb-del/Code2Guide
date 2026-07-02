@@ -41,6 +41,13 @@ class Project(models.Model):
         verbose_name="Токен для расширения Chrome",
     )
 
+    backend_archive = models.FileField(
+        upload_to='backends/',
+        blank=True,
+        null=True,
+        verbose_name="ZIP бэкенда",
+    )
+
     # Связь с пользователем
     user = models.ForeignKey(
         User,

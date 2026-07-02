@@ -72,6 +72,26 @@
                     </div>
                 </div>
 
+                <!-- ZIP бэкенда -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                        ZIP-архив бэкенда <span class="text-gray-400 font-normal">(необязательно)</span>
+                    </label>
+                    <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 hover:border-[#2563EB] transition-colors cursor-pointer" id="backendDropzone">
+                        <input type="file" id="backendArchive" name="backend_archive" accept=".zip,application/zip" class="hidden">
+                        <div id="backendPlaceholder" class="flex items-center gap-3 text-gray-500">
+                            <i class="fas fa-server text-xl text-gray-400"></i>
+                            <span class="text-sm">Загрузите ZIP с Django/FastAPI бэкендом для улучшения инструкций</span>
+                        </div>
+                        <div id="backendSelected" class="hidden flex items-center gap-3">
+                            <i class="fas fa-server text-xl text-[#2563EB]"></i>
+                            <p id="backendFileName" class="text-sm font-medium text-gray-700 truncate flex-1"></p>
+                            <button type="button" id="removeBackendBtn" class="p-1 text-gray-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-500">Модели Django с verbose_name помогут писать инструкции на языке бизнеса</p>
+                </div>
+
                 <!-- URL репозитория -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">
@@ -440,6 +460,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData();
             formData.append('name', projectNameInput.value);
             formData.append('business_context', document.getElementById('businessContext').value);
+            const backendArchiveInput = document.getElementById('backendArchive');
+            if (backendArchiveInput && backendArchiveInput.files[0]) {
+                formData.append('backend_archive', backendArchiveInput.files[0]);
+            }
             formData.append('repo_url', repoUrlInput ? repoUrlInput.value : '');
             formData.append('branch', document.getElementById('branch').value);
             formData.append('auto_generate', document.getElementById('autoGenerate').checked ? 'on' : 'off');
@@ -580,6 +604,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 logoFile.files = dt.files;
             }
         });
+    }
+
+    // Backend dropzone
+    const backendDropzone = document.getElementById('backendDropzone');
+    const backendArchiveInput = document.getElementById('backendArchive');
+    const backendPlaceholder = document.getElementById('backendPlaceholder');
+    const backendSelected = document.getElementById('backendSelected');
+    const backendFileName = document.getElementById('backendFileName');
+    const removeBackendBtn = document.getElementById('removeBackendBtn');
+
+    if (backendDropzone) {
+        backendDropzone.addEventListener('click', () => backendArchiveInput.click());
+        backendDropzone.addEventListener('dragover', e => { e.preventDefault(); backendDropzone.classList.add('border-[#2563EB]'); });
+        backendDropzone.addEventListener('dragleave', () => backendDropzone.classList.remove('border-[#2563EB]'));
+        backendDropzone.addEventListener('drop', e => {
+            e.preventDefault();
+            backendDropzone.classList.remove('border-[#2563EB]');
+            const file = e.dataTransfer.files[0];
+            if (file) { const dt = new DataTransfer(); dt.items.add(file); backendArchiveInput.files = dt.files; showBackendFile(file); }
+        });
+    }
+    if (backendArchiveInput) backendArchiveInput.addEventListener('change', () => { if (backendArchiveInput.files[0]) showBackendFile(backendArchiveInput.files[0]); });
+    if (removeBackendBtn) removeBackendBtn.addEventListener('click', e => { e.stopPropagation(); backendArchiveInput.value = ''; backendPlaceholder.classList.remove('hidden'); backendSelected.classList.add('hidden'); });
+
+    function showBackendFile(file) {
+        backendPlaceholder.classList.add('hidden');
+        backendSelected.classList.remove('hidden');
+        backendFileName.textContent = file.name;
     }
 
     // Close modal events

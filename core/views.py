@@ -25,6 +25,7 @@ from .services.jsx_parser import (
 )
 
 from .services.instruction_generator import generate_instructions_with_yandex
+from .services.backend_parser import parse_backend_zip, get_route_context
 from .services.document_builder import build_document_pages
 from .services.source_loader import prepare_project_source
 from .services.screenshot_service import take_route_screenshots
@@ -183,6 +184,8 @@ def create_project_api(request):
         import secrets
         business_context = request.POST.get('business_context', '').strip()
 
+        backend_archive = request.FILES.get('backend_archive')
+
         project = Project.objects.create(
             name=name,
             description=f"Репозиторий: {repo_url}\nВетка: {branch}",
@@ -191,6 +194,7 @@ def create_project_api(request):
             user=request.user,
             repo_url=repo_url,
             react_archive=react_archive,
+            backend_archive=backend_archive,
             branch=branch,
             api_token=secrets.token_hex(24),
         )
@@ -349,6 +353,12 @@ def generate_instruction_api(request, project_id):
         source_path, cleanup_path = prepare_project_source(project)
 
         try:
+            # Парсим бэкенд если загружен
+            backend_context = {}
+            if project.backend_archive:
+                backend_zip_path = project.backend_archive.path
+                backend_context = parse_backend_zip(backend_zip_path)
+
             routes_path = Path(source_path) / "src" / "routes.js"
 
             if routes_path.exists():
@@ -388,7 +398,8 @@ def generate_instruction_api(request, project_id):
                 else:
                     jsx_content = ''
 
-                steps = generate_instructions_with_yandex(route_name, route_path, jsx_content)
+                route_be_context = get_route_context(backend_context, route_path, route_name)
+                steps = generate_instructions_with_yandex(route_name, route_path, jsx_content, route_be_context)
 
                 instruction_data.append({
                     'name': route_name,
