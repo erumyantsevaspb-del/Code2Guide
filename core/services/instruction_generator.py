@@ -73,26 +73,43 @@ def generate_instructions_with_yandex(route_name, path, jsx_content, backend_con
     return steps
 
 
+_TECHNICAL_FIELD_KEYWORDS = (
+    'внешний ключ', 'foreign key', 'идентификатор', 'удален', 'deleted',
+    'is_active', 'is_deleted', 'created_at', 'updated_at', 'modified',
+    'has_unread', 'непрочитан', 'uuid', 'slug', 'order', 'sort',
+)
+
+_TECHNICAL_FIELD_NAMES = (
+    'id', 'uuid', 'created', 'updated', 'modified', 'deleted',
+    'is_deleted', 'is_active', 'has_unread', 'dc_id', 'gis_id',
+)
+
+
 def _resolve_fields(jsx_fields, be_fields):
     """
-    Заменяет технические имена полей из JSX на verbose_name из бэкенда.
-    Если совпадений нет — оставляет JSX-значения.
+    Использует только JSX-поля (они ближе к UI).
+    Из бэкенда берём только явно пользовательские поля которых нет в JSX.
     """
+    result = list(jsx_fields)
+
     if not be_fields:
-        return jsx_fields
+        return result
 
-    result = list(jsx_fields)  # начинаем с JSX полей
-
-    # Добавляем поля из бэкенда которых нет в JSX (они могут быть важны)
     jsx_lower = {f.lower() for f in jsx_fields}
-    for field_name, verbose in be_fields.items():
-        if verbose.lower() not in jsx_lower and len(result) < 10:
-            # Добавляем только если это похоже на пользовательское поле
-            skip = {'id', 'created', 'updated', 'modified', 'datetime', 'has_unread'}
-            if not any(s in field_name.lower() for s in skip):
-                result.append(verbose)
 
-    return list(dict.fromkeys(result))[:10]
+    for field_name, verbose in be_fields.items():
+        if len(result) >= 8:
+            break
+        # Пропускаем технические поля
+        if any(s in field_name.lower() for s in _TECHNICAL_FIELD_NAMES):
+            continue
+        if any(s in verbose.lower() for s in _TECHNICAL_FIELD_KEYWORDS):
+            continue
+        # Добавляем только если не дублирует JSX
+        if verbose.lower() not in jsx_lower:
+            result.append(verbose)
+
+    return list(dict.fromkeys(result))[:8]
 
 
 def _collect_enum_values(be_enums):

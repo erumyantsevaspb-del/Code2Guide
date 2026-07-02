@@ -1,6 +1,24 @@
 import re
 from pathlib import Path
 
+_ROUTE_NAME_RU = {
+    'home': 'Главная', 'dashboard': 'Дашборд', 'profile': 'Профиль',
+    'settings': 'Настройки', 'login': 'Вход', 'register': 'Регистрация',
+    'patients': 'Пациенты', 'appointments': 'Приёмы', 'appoints': 'Приёмы',
+    'claims': 'Заявки', 'tickets': 'Заявки', 'consumables': 'Расходники',
+    'materials': 'Материалы', 'reports': 'Отчёты', 'statements': 'Ведомости',
+    'contacts': 'Контакты', 'companies': 'Компании', 'deals': 'Сделки',
+    'orders': 'Заказы', 'products': 'Товары', 'users': 'Пользователи',
+    'tasks': 'Задачи', 'calendar': 'Календарь', 'analytics': 'Аналитика',
+    'invoices': 'Счета', 'documents': 'Документы', 'files': 'Файлы',
+    'notifications': 'Уведомления', 'messages': 'Сообщения',
+    'shift': 'Смена', 'duty schedule': 'График дежурств',
+    'managment': 'Управление', 'connectors': 'Интеграции',
+    'changelog': 'Журнал изменений', 'research list': 'Список исследований',
+    'extra': 'Доп. услуги', 'extra claims': 'Заявки по доп. услугам',
+    'image reports': 'Отчёты по снимкам', 'partners': 'Партнёры',
+}
+
 # Человекочитаемые названия для resource-имён react-admin
 _RESOURCE_LABELS = {
     'contacts': 'Контакты',
@@ -73,7 +91,8 @@ def parse_routepath_routes(source_path):
             if any(p in sub_keywords for p in parts[1:]):
                 continue
             seen_paths.add(path)
-            name = key.replace('_', ' ').title()
+            raw_name = key.replace('_', ' ')
+            name = _ROUTE_NAME_RU.get(raw_name.lower(), raw_name.title())
             routes.append({'path': path, 'name': name, 'component': key})
 
         if routes:
@@ -115,7 +134,8 @@ def parse_nextjs_routes(source_path):
             name = 'Главная'
         else:
             route_path = '/' + '/'.join(clean_parts)
-            name = clean_parts[-1].replace('-', ' ').replace('_', ' ').title()
+            raw_name = clean_parts[-1].replace('-', ' ').replace('_', ' ')
+            name = _ROUTE_NAME_RU.get(raw_name.lower(), raw_name.title())
 
         routes.append({
             'path': route_path,
