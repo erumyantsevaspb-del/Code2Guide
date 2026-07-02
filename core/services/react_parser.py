@@ -21,6 +21,111 @@ _RESOURCE_LABELS = {
 }
 
 
+def parse_routepath_routes(source_path):
+    """
+    Читает маршруты из RoutePath объекта в TypeScript (router.ts / routes.ts).
+    Формат: export const RoutePath: Record<...> = { key: "/path", ... }
+    """
+    source = Path(source_path)
+    routes = []
+
+    # Ищем файлы-кандидаты
+    candidates = []
+    for ext in ('*.ts', '*.tsx'):
+        for f in source.rglob(ext):
+            if 'node_modules' in f.parts:
+                continue
+            if f.name.lower() in ('router.ts', 'routes.ts', 'router.tsx', 'routes.tsx'):
+                candidates.append(f)
+
+    for filepath in candidates:
+        try:
+            content = filepath.read_text(encoding='utf-8', errors='ignore')
+        except Exception:
+            continue
+
+        if 'RoutePath' not in content and 'routePath' not in content:
+            continue
+
+        # Ищем блок RoutePath = { ... }
+        block_match = re.search(
+            r'(?:RoutePath|routePath)\s*[=:][^{]*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}',
+            content, re.DOTALL
+        )
+        if not block_match:
+            continue
+
+        block = block_match.group(1)
+        pairs = re.findall(r'(\w+)\s*:\s*["\']([^"\']+)["\']', block)
+
+        # Фильтруем дубли путей и служебные роуты
+        seen_paths = set()
+        skip_keys = {'forbidden', 'not_found', 'technical_works', 'storybook', 'print_agreement'}
+
+        for key, path in pairs:
+            if key in skip_keys:
+                continue
+            if path in seen_paths:
+                continue
+            # Пропускаем sub-роуты (create, edit, view и т.п.)
+            sub_keywords = ('create', 'edit', 'view', 'history', 'search', 'record', 'card')
+            parts = key.split('_')
+            if any(p in sub_keywords for p in parts[1:]):
+                continue
+            seen_paths.add(path)
+            name = key.replace('_', ' ').title()
+            routes.append({'path': path, 'name': name, 'component': key})
+
+        if routes:
+            return routes
+
+    return routes
+
+
+def parse_nextjs_routes(source_path):
+    """
+    Читает маршруты из Next.js App Router — папки с page.tsx/page.jsx.
+    """
+    source = Path(source_path)
+    routes = []
+
+    # Ищем папку app/
+    app_dirs = list(source.rglob('app'))
+    app_dirs = [d for d in app_dirs if d.is_dir() and 'node_modules' not in d.parts]
+    if not app_dirs:
+        return routes
+
+    app_dir = min(app_dirs, key=lambda p: len(p.parts))
+
+    for page_file in app_dir.rglob('page.tsx'):
+        rel = page_file.parent.relative_to(app_dir)
+        parts = rel.parts
+
+        # Пропускаем служебные сегменты Next.js
+        clean_parts = []
+        for p in parts:
+            if p.startswith('(') and p.endswith(')'):
+                continue  # группировка: (routes), (auth) и т.д.
+            if p.startswith('[') and p.endswith(']'):
+                continue  # динамические сегменты: [locale], [id]
+            clean_parts.append(p)
+
+        if not clean_parts:
+            route_path = '/'
+            name = 'Главная'
+        else:
+            route_path = '/' + '/'.join(clean_parts)
+            name = clean_parts[-1].replace('-', ' ').replace('_', ' ').title()
+
+        routes.append({
+            'path': route_path,
+            'name': name,
+            'component': ''.join(p.title() for p in clean_parts) or 'Home',
+        })
+
+    return routes
+
+
 def parse_react_admin_routes(source_path):
     """
     Ищет <Resource name="..."> в TSX/JSX файлах проекта.

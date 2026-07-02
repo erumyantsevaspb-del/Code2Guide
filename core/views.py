@@ -16,6 +16,7 @@ from .services.react_parser import (
     parse_component_imports,
     parse_react_admin_routes,
     parse_nextjs_routes,
+    parse_routepath_routes,
 )
 
 from .services.jsx_parser import (
@@ -359,11 +360,14 @@ def generate_instruction_api(request, project_id):
                 if not routes:
                     raise Exception("Next.js проект найден, но страницы не обнаружены")
             else:
-                # React Admin: ищем <Resource name="...">
-                routes = parse_react_admin_routes(source_path)
+                # RoutePath: кастомный TS роутер
+                routes = parse_routepath_routes(source_path)
                 imports = {}
                 if not routes:
-                    raise Exception("Не удалось найти маршруты. Поддерживаются: CoreUI (routes.js), React Admin (<Resource>), Next.js (app/)")
+                    # React Admin: ищем <Resource name="...">
+                    routes = parse_react_admin_routes(source_path)
+                if not routes:
+                    raise Exception("Не удалось найти маршруты. Поддерживаются: CoreUI (routes.js), React Admin (<Resource>), Next.js (app/), RoutePath (router.ts)")
 
             instruction_data = []
 
