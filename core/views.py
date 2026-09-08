@@ -325,10 +325,14 @@ def _take_screenshots_background(generation_id, source_path, cleanup_path, route
         print(f"Скриншоты готовы: {len(screenshots)} шт.")
     except Exception as e:
         print(f"Ошибка скриншотов в фоне: {e}")
+        # NX и другие ошибки запуска — инструкции готовы, скриншоты пропущены
+        skip_keywords = ('nx monorepo', 'не поддерживается', 'timedout', 'timeout')
+        is_skip = any(k in str(e).lower() for k in skip_keywords)
         try:
             generation = Generation.objects.get(id=generation_id)
-            generation.status = 'failed'
-            generation.error_message = str(e)
+            generation.status = 'completed' if is_skip else 'failed'
+            if not is_skip:
+                generation.error_message = str(e)
             generation.completed_at = timezone.now()
             generation.duration_seconds = int((generation.completed_at - generation.created_at).total_seconds())
             generation.save()
