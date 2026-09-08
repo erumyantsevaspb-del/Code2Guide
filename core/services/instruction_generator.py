@@ -1,14 +1,21 @@
 import re
+from core.services.ast_parser import parse_jsx_content as _ast_parse
 
 
 def generate_instructions_with_yandex(route_name, path, jsx_content, backend_context=None):
     """
     Генерирует пошаговую инструкцию на основе JSX-кода и контекста бэкенда.
     """
-    fields = _extract_fields(jsx_content)
-    selects = _extract_selects(jsx_content)
+    # AST-парсинг: даёт более точные поля, кнопки, колонки
+    ast = _ast_parse(jsx_content, is_tsx=True)
+    ast_fields = [f['label'] for f in ast['fields'] if f.get('label')]
+    ast_buttons = ast['buttons']
+
+    # Regex-парсинг как запасной вариант
+    fields = ast_fields if ast_fields else _extract_fields(jsx_content)
+    selects = ast['selects'] or _extract_selects(jsx_content)
     checkboxes = _extract_checkboxes(jsx_content)
-    buttons = _extract_buttons(jsx_content)
+    buttons = ast_buttons if ast_buttons else _extract_buttons(jsx_content)
 
     # Обогащаем названия полей из бэкенда
     be_fields = backend_context.get('fields', {}) if backend_context else {}
