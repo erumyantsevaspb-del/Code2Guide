@@ -44,18 +44,23 @@ def take_route_screenshots(source_path, routes, project_id):
     screenshots_dir = Path(settings.MEDIA_ROOT) / 'screenshots' / str(project_id)
     screenshots_dir.mkdir(parents=True, exist_ok=True)
 
-    # Проверяем не является ли проект NX monorepo
-    import json as _json_check
+    import json as _json
     try:
-        pkg = _json_check.loads((Path(source_path) / 'package.json').read_text(encoding='utf-8', errors='ignore'))
-        scripts = pkg.get('scripts', {})
-        dev_cmd = scripts.get(dev_script, '')
-        if 'nx ' in dev_cmd or 'nx run' in dev_cmd:
-            raise RuntimeError("NX monorepo не поддерживается для локального запуска скриншотов")
-    except RuntimeError:
-        raise
+        pkg_data = _json.loads((Path(source_path) / 'package.json').read_text(encoding='utf-8', errors='ignore'))
+        pkg_scripts = pkg_data.get('scripts', {})
     except Exception:
-        pass
+        pkg_scripts = {}
+
+    # Определяем скрипт запуска: start или dev
+    dev_script = _detect_dev_script(source_path)
+    print(f"Используем скрипт: {dev_script}")
+
+    # Проверяем не является ли проект NX monorepo
+    dev_cmd = pkg_scripts.get(dev_script, '')
+    if 'nx ' in dev_cmd or 'nx run' in dev_cmd:
+        raise RuntimeError("NX monorepo не поддерживается для локального запуска скриншотов")
+
+    is_nextjs = 'next' in dev_cmd
 
     # Установка зависимостей
     print("Устанавливаем зависимости npm...")
@@ -69,20 +74,8 @@ def take_route_screenshots(source_path, routes, project_id):
     # Запуск dev-сервера
     print("Запускаем React-приложение...")
     env = os.environ.copy()
-    env['BROWSER'] = 'none'  # не открывать браузер
+    env['BROWSER'] = 'none'
     env['CI'] = 'false'
-
-    # Определяем скрипт запуска: start или dev
-    dev_script = _detect_dev_script(source_path)
-    print(f"Используем скрипт: {dev_script}")
-
-    # Next.js использует -p, Vite — --port
-    import json as _json
-    try:
-        pkg_scripts = _json.loads((Path(source_path) / 'package.json').read_text()).get('scripts', {})
-        is_nextjs = 'next' in pkg_scripts.get(dev_script, '')
-    except Exception:
-        is_nextjs = False
 
     if is_nextjs:
         port_args = ['-p', str(port)]
