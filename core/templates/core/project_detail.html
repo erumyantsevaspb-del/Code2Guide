@@ -174,12 +174,10 @@
                     </td>
                     <td>{{ gen.components_count }}</td>
                     <td>
-                        {% if gen.duration_seconds %}
-                            {% with mm=gen.duration_seconds|divisibleby:60 %}
-                            <span data-seconds="{{ gen.duration_seconds }}" class="duration-fmt">{{ gen.duration_seconds }}</span>
-                            {% endwith %}
-                        {% else %}
+                        {% if gen.status == 'processing' %}
                             —
+                        {% else %}
+                            <span data-seconds="{{ gen.duration_seconds|default:0 }}" class="duration-fmt">{{ gen.duration_seconds|default:0 }}</span>
                         {% endif %}
                     </td>
                     <td>

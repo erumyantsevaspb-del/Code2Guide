@@ -62,10 +62,10 @@
                     {% if gen.components_count %}{{ gen.components_count }} компонентов{% else %}—{% endif %}
                 </td>
                 <td class="px-6 py-4 text-gray-700">
-                    {% if gen.duration_seconds %}
-                        <span class="duration-fmt" data-seconds="{{ gen.duration_seconds }}">{{ gen.duration_seconds }}</span>
-                    {% else %}
+                    {% if gen.status == 'processing' %}
                         —
+                    {% else %}
+                        <span class="duration-fmt" data-seconds="{{ gen.duration_seconds|default:0 }}">{{ gen.duration_seconds|default:0 }}</span>
                     {% endif %}
                 </td>
                 <td class="px-6 py-4">
