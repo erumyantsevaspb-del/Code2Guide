@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 
+# Словарь точных совпадений (полные названия роутов)
 _ROUTE_NAME_RU = {
     'home': 'Главная', 'dashboard': 'Дашборд', 'profile': 'Профиль',
     'settings': 'Настройки', 'login': 'Вход', 'register': 'Регистрация',
@@ -17,7 +18,60 @@ _ROUTE_NAME_RU = {
     'changelog': 'Журнал изменений', 'research list': 'Список исследований',
     'extra': 'Доп. услуги', 'extra claims': 'Заявки по доп. услугам',
     'image reports': 'Отчёты по снимкам', 'partners': 'Партнёры',
+    'duty': 'График дежурств', 'salary': 'Зарплата', 'wagework': 'Зарплата',
+    'support': 'Поддержка', 'research': 'Исследования',
 }
+
+# Словарь отдельных слов для пословного перевода составных роутов
+_WORD_RU = {
+    'home': 'Главная', 'dashboard': 'Дашборд', 'profile': 'Профиль',
+    'settings': 'Настройки', 'login': 'Вход', 'register': 'Регистрация',
+    'patients': 'Пациенты', 'patient': 'Пациент',
+    'appointments': 'Приёмы', 'appoints': 'Приёмы', 'appointment': 'Приём',
+    'claims': 'Заявки', 'claim': 'Заявка',
+    'tickets': 'Заявки', 'ticket': 'Заявка',
+    'consumables': 'Расходники', 'consumable': 'Расходник',
+    'consumption': 'Списание', 'expense': 'Расход', 'receipt': 'Приход',
+    'materials': 'Материалы', 'material': 'Материал',
+    'reports': 'Отчёты', 'report': 'Отчёт',
+    'statements': 'Ведомости', 'statement': 'Ведомость',
+    'contacts': 'Контакты', 'contact': 'Контакт',
+    'companies': 'Компании', 'company': 'Компания',
+    'deals': 'Сделки', 'deal': 'Сделка',
+    'orders': 'Заказы', 'order': 'Заказ',
+    'products': 'Товары', 'product': 'Товар',
+    'users': 'Пользователи', 'user': 'Пользователь',
+    'tasks': 'Задачи', 'task': 'Задача',
+    'calendar': 'Календарь', 'analytics': 'Аналитика',
+    'invoices': 'Счета', 'invoice': 'Счёт',
+    'documents': 'Документы', 'document': 'Документ',
+    'files': 'Файлы', 'file': 'Файл',
+    'notifications': 'Уведомления', 'messages': 'Сообщения',
+    'shift': 'Смена', 'duty': 'Дежурство', 'schedule': 'График',
+    'management': 'Управление', 'managment': 'Управление',
+    'connectors': 'Интеграции', 'connector': 'Интеграция',
+    'changelog': 'Журнал изменений', 'extra': 'Доп. услуги',
+    'partners': 'Партнёры', 'partner': 'Партнёр',
+    'support': 'Поддержка', 'research': 'Исследование',
+    'list': 'Список', 'image': 'Снимки', 'images': 'Снимки',
+    'association': 'Прикрепление', 'registration': 'Регистрация',
+    'salary': 'Зарплата', 'wagework': 'Зарплата',
+    'dc': 'ДЦ', 'sc': 'СЦ', 'lk': 'ЛК',
+    'tech': 'Техн.', 'info': 'Инфо',
+    'create': 'Создание', 'edit': 'Редактирование', 'view': 'Просмотр',
+    'history': 'История',
+}
+
+
+def _translate_route_name(raw_name: str) -> str:
+    """Переводит название роута: сначала точное совпадение, затем пословно."""
+    key = raw_name.lower().strip()
+    if key in _ROUTE_NAME_RU:
+        return _ROUTE_NAME_RU[key]
+    # Пословный перевод
+    words = key.split()
+    translated = [_WORD_RU.get(w, w.upper() if len(w) <= 3 else w.title()) for w in words]
+    return ' '.join(translated)
 
 # Человекочитаемые названия для resource-имён react-admin
 _RESOURCE_LABELS = {
@@ -92,7 +146,7 @@ def parse_routepath_routes(source_path):
                 continue
             seen_paths.add(path)
             raw_name = key.replace('_', ' ')
-            name = _ROUTE_NAME_RU.get(raw_name.lower(), raw_name.title())
+            name = _translate_route_name(raw_name)
             routes.append({'path': path, 'name': name, 'component': key})
 
         if routes:
@@ -135,7 +189,7 @@ def parse_nextjs_routes(source_path):
         else:
             route_path = '/' + '/'.join(clean_parts)
             raw_name = clean_parts[-1].replace('-', ' ').replace('_', ' ')
-            name = _ROUTE_NAME_RU.get(raw_name.lower(), raw_name.title())
+            name = _translate_route_name(raw_name)
 
         routes.append({
             'path': route_path,
