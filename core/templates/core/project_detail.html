@@ -110,6 +110,41 @@
             </div>
         </div>
 
+        <!-- Настройки скриншотов -->
+        <div class="bg-white rounded-lg border border-gray-200 p-6 mt-6">
+            <h3 class="text-lg font-semibold text-[#1F2937] mb-1">Скриншоты</h3>
+            <p class="text-xs text-gray-500 mb-4">Необязательно. Если указать URL и данные для входа, скриншоты будут сделаны из реального приложения.</p>
+            <form id="screenshotSettingsForm">
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-sm text-gray-600 block mb-1">URL приложения</label>
+                        <input type="url" name="app_url" placeholder="https://crm.example.com"
+                               value="{{ project.app_url }}"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 block mb-1">Логин</label>
+                        <input type="text" name="app_login" placeholder="email или имя пользователя"
+                               value="{{ project.app_login }}"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 block mb-1">Пароль</label>
+                        <input type="password" name="app_password"
+                               placeholder="{% if project.app_password %}••••••••{% else %}Пароль{% endif %}"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <button type="button" onclick="saveScreenshotSettings()"
+                            class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                        Сохранить
+                    </button>
+                    <div id="settingsSaved" class="hidden text-green-600 text-xs text-center">
+                        <i class="fas fa-check mr-1"></i> Сохранено
+                    </div>
+                </div>
+            </form>
+        </div>
+
         <div class="bg-white rounded-lg border border-gray-200 p-6 mt-6">
             <h3 class="text-lg font-semibold text-[#1F2937] mb-4">Информация о репозитории</h3>
             <div class="space-y-3">
@@ -456,6 +491,21 @@
             }
         }
         return cookieValue;
+    }
+
+    async function saveScreenshotSettings() {
+        const form = document.getElementById('screenshotSettingsForm');
+        const data = new FormData(form);
+        const resp = await fetch('{% url "update_project_api" project.id %}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken')},
+            body: data,
+        });
+        if (resp.ok) {
+            const saved = document.getElementById('settingsSaved');
+            saved.classList.remove('hidden');
+            setTimeout(() => saved.classList.add('hidden'), 2500);
+        }
     }
 </script>
 {% endblock %}

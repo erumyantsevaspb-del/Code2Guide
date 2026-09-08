@@ -48,6 +48,25 @@ class Project(models.Model):
         verbose_name="ZIP бэкенда",
     )
 
+    app_url = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name="URL приложения",
+        help_text="Например: https://crm.example.com"
+    )
+
+    app_login = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Логин"
+    )
+
+    app_password = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Пароль"
+    )
+
     # Связь с пользователем
     user = models.ForeignKey(
         User,

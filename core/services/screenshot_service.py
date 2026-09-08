@@ -142,6 +142,142 @@ def take_route_screenshots(source_path, routes, project_id):
     return screenshots
 
 
+def take_screenshots_with_credentials(app_url, app_login, app_password, routes, project_id):
+    """
+    Делает скриншоты реального приложения по URL с авторизацией.
+    Возвращает {route_path: relative_url_to_screenshot}.
+    Пропускает роуты, недоступные для данного пользователя (редирект на login/403).
+    """
+    from playwright.sync_api import sync_playwright
+
+    screenshots = {}
+    screenshots_dir = Path(settings.MEDIA_ROOT) / 'screenshots' / str(project_id)
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
+
+    base_url = app_url.rstrip('/')
+    login_keywords = ('login', 'sign-in', 'signin', 'auth', 'logout', '403', 'forbidden', 'access-denied')
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport={'width': 1280, 'height': 800})
+
+        # Авторизация
+        print(f"Авторизуемся на {base_url}...")
+        _do_login(page, base_url, app_login, app_password)
+
+        # Скриншоты каждого роута
+        for route in routes:
+            route_path = route.get('path', '/')
+            route_name = route.get('name', 'page')
+            url = f"{base_url}{route_path}"
+
+            safe_name = _safe_filename(route_name)
+            screenshot_path = screenshots_dir / f"{safe_name}.png"
+
+            try:
+                page.goto(url, wait_until='networkidle', timeout=20000)
+                time.sleep(1)
+                final_url = page.url
+
+                # Пропускаем если нет доступа
+                if any(kw in final_url.lower() for kw in login_keywords):
+                    print(f"Нет доступа: {route_name} → {final_url}")
+                    continue
+
+                page.screenshot(path=str(screenshot_path), full_page=False)
+                rel_path = f"screenshots/{project_id}/{safe_name}.png"
+                screenshots[route_path] = rel_path
+                print(f"Скриншот: {route_name} → {safe_name}.png")
+            except Exception as e:
+                print(f"Ошибка скриншота {route_name}: {e}")
+
+        browser.close()
+
+    return screenshots
+
+
+def _do_login(page, base_url, login, password):
+    """Пытается войти в приложение через форму логина."""
+    login_urls = [
+        f"{base_url}/login",
+        f"{base_url}/sign-in",
+        f"{base_url}/signin",
+        f"{base_url}/auth/login",
+        f"{base_url}/auth",
+    ]
+
+    for login_url in login_urls:
+        try:
+            page.goto(login_url, wait_until='networkidle', timeout=10000)
+            time.sleep(1)
+
+            # Ищем поле логина/email
+            login_selectors = [
+                'input[type="email"]',
+                'input[name="email"]',
+                'input[name="login"]',
+                'input[name="username"]',
+                'input[placeholder*="mail" i]',
+                'input[placeholder*="логин" i]',
+                'input[placeholder*="email" i]',
+            ]
+            password_selectors = [
+                'input[type="password"]',
+            ]
+
+            login_field = None
+            for sel in login_selectors:
+                try:
+                    el = page.locator(sel).first
+                    if el.is_visible(timeout=1000):
+                        login_field = el
+                        break
+                except Exception:
+                    continue
+
+            password_field = None
+            for sel in password_selectors:
+                try:
+                    el = page.locator(sel).first
+                    if el.is_visible(timeout=1000):
+                        password_field = el
+                        break
+                except Exception:
+                    continue
+
+            if not login_field or not password_field:
+                continue
+
+            login_field.fill(login)
+            password_field.fill(password)
+
+            # Нажимаем кнопку входа
+            submit_selectors = [
+                'button[type="submit"]',
+                'input[type="submit"]',
+                'button:has-text("Войти")',
+                'button:has-text("Вход")',
+                'button:has-text("Sign in")',
+                'button:has-text("Login")',
+            ]
+            for sel in submit_selectors:
+                try:
+                    btn = page.locator(sel).first
+                    if btn.is_visible(timeout=1000):
+                        btn.click()
+                        page.wait_for_load_state('networkidle', timeout=10000)
+                        print(f"Авторизация выполнена через {login_url}")
+                        return
+                except Exception:
+                    continue
+
+        except Exception as e:
+            print(f"Не удалось войти через {login_url}: {e}")
+            continue
+
+    print("Авторизация не удалась — продолжаем без неё")
+
+
 def _wait_for_port(port, timeout=300, process=None):
     import urllib.request
     start = time.time()

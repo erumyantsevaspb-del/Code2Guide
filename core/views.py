@@ -161,6 +161,21 @@ def delete_project_api(request, project_id):
 
 @login_required
 @require_POST
+def update_project_api(request, project_id):
+    """Обновление настроек проекта (URL, логин, пароль для скриншотов)."""
+    project = get_object_or_404(Project, id=project_id, user=request.user)
+    project.app_url = request.POST.get('app_url', '').strip()
+    project.app_login = request.POST.get('app_login', '').strip()
+    # Пароль обновляем только если передан (не пустой)
+    new_password = request.POST.get('app_password', '').strip()
+    if new_password:
+        project.app_password = new_password
+    project.save()
+    return JsonResponse({'success': True})
+
+
+@login_required
+@require_POST
 def create_project_api(request):
     """API для создания проекта (привязан к пользователю)"""
     try:
@@ -308,11 +323,16 @@ def project_detail(request, project_id):
     return render(request, 'core/project_detail.html', context)
 
 
-def _take_screenshots_background(generation_id, source_path, cleanup_path, routes, project_id):
+def _take_screenshots_background(generation_id, source_path, cleanup_path, routes, project_id,
+                                  app_url=None, app_login=None, app_password=None):
     """Делает скриншоты в фоновом потоке и обновляет генерацию."""
     import django
     try:
-        screenshots = take_route_screenshots(source_path, routes, project_id)
+        if app_url and app_login and app_password:
+            from core.services.screenshot_service import take_screenshots_with_credentials
+            screenshots = take_screenshots_with_credentials(app_url, app_login, app_password, routes, project_id)
+        else:
+            screenshots = take_route_screenshots(source_path, routes, project_id)
         generation = Generation.objects.get(id=generation_id)
         data = generation.instruction_data or []
         for item in data:
@@ -430,6 +450,11 @@ def generate_instruction_api(request, project_id):
             thread = threading.Thread(
                 target=_take_screenshots_background,
                 args=(generation.id, source_path, cleanup_path, routes, project.id),
+                kwargs={
+                    'app_url': project.app_url or None,
+                    'app_login': project.app_login or None,
+                    'app_password': project.app_password or None,
+                },
                 daemon=True,
             )
             thread.start()
