@@ -223,6 +223,18 @@ class Generation(models.Model):
         verbose_name="Время генерации (сек)"
     )
 
+    algorithm_version = models.CharField(
+        max_length=20,
+        default='V0',
+        verbose_name="Версия алгоритма",
+    )
+
+    code_version = models.CharField(
+        max_length=40,
+        blank=True,
+        verbose_name="Git commit hash Code2Guide",
+    )
+
     class Meta:
         verbose_name = "Генерация"
         verbose_name_plural = "Генерации"

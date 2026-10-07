@@ -29,6 +29,7 @@ from .services.backend_parser import parse_backend_zip, get_route_context
 from .services.document_builder import build_document_pages
 from .services.source_loader import prepare_project_source
 from .services.screenshot_service import take_route_screenshots
+from .services.experiment import get_experiment_meta
 
 
 def register_view(request):
@@ -164,7 +165,10 @@ def delete_project_api(request, project_id):
 def update_project_api(request, project_id):
     """Обновление настроек проекта (URL, логин, пароль для скриншотов)."""
     project = get_object_or_404(Project, id=project_id, user=request.user)
-    project.app_url = request.POST.get('app_url', '').strip()
+    app_url = request.POST.get('app_url', '').strip()
+    if app_url and not app_url.startswith(('http://', 'https://')):
+        app_url = 'https://' + app_url
+    project.app_url = app_url
     project.app_login = request.POST.get('app_login', '').strip()
     # Пароль обновляем только если передан (не пустой)
     new_password = request.POST.get('app_password', '').strip()
@@ -323,6 +327,16 @@ def project_detail(request, project_id):
     return render(request, 'core/project_detail.html', context)
 
 
+def _save_experiment_result_safe(generation):
+    """Сохраняет результат в experiment_results/. Не бросает исключений."""
+    try:
+        from .services.experiment_storage import save_experiment_result
+        path = save_experiment_result(generation)
+        print(f"Результат эксперимента сохранён: {path}")
+    except Exception as ex:
+        print(f"Не удалось сохранить результат эксперимента: {ex}")
+
+
 def _take_screenshots_background(generation_id, source_path, cleanup_path, routes, project_id,
                                   app_url=None, app_login=None, app_password=None):
     """Делает скриншоты в фоновом потоке и обновляет генерацию."""
@@ -343,6 +357,7 @@ def _take_screenshots_background(generation_id, source_path, cleanup_path, route
         generation.duration_seconds = int((generation.completed_at - generation.created_at).total_seconds())
         generation.save()
         print(f"Скриншоты готовы: {len(screenshots)} шт.")
+        _save_experiment_result_safe(generation)
     except Exception as e:
         print(f"Ошибка скриншотов в фоне: {e}")
         # NX и другие ошибки запуска — инструкции готовы, скриншоты пропущены
@@ -356,6 +371,8 @@ def _take_screenshots_background(generation_id, source_path, cleanup_path, route
             generation.completed_at = timezone.now()
             generation.duration_seconds = int((generation.completed_at - generation.created_at).total_seconds())
             generation.save()
+            if generation.status == 'completed':
+                _save_experiment_result_safe(generation)
         except Exception:
             pass
     finally:
@@ -432,6 +449,7 @@ def generate_instruction_api(request, project_id):
                     'screenshot': None,
                 })
 
+            exp_meta = get_experiment_meta()
             generation = Generation.objects.create(
                 project=project,
                 user=request.user,
@@ -439,7 +457,9 @@ def generate_instruction_api(request, project_id):
                 commit_message=f"Генерация инструкции для {project.name}",
                 components_count=len(instruction_data),
                 instruction_data=instruction_data,
-                status='processing'
+                status='processing',
+                algorithm_version=exp_meta['algorithm_version'],
+                code_version=exp_meta['code_version'],
             )
 
             project.instructions_count = len(instruction_data)

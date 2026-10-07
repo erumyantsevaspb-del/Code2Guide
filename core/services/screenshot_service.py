@@ -220,6 +220,7 @@ def _do_login(page, base_url, login, password):
                 'input[placeholder*="mail" i]',
                 'input[placeholder*="логин" i]',
                 'input[placeholder*="email" i]',
+                'input[type="text"]',  # фолбэк: первое текстовое поле
             ]
             password_selectors = [
                 'input[type="password"]',

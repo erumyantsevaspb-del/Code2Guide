@@ -9,11 +9,15 @@ def beautify_instructions(instructions):
     result = []
 
     text_fields = []
+    textareas = []
     checkboxes = []
     buttons = []
 
+    has_dropdowns = False
+
     for instruction in instructions:
 
+        # Поля ввода
         # Поля ввода
         match = re.search(
             r'Введите значение в поле "(.+?)"',
@@ -21,7 +25,13 @@ def beautify_instructions(instructions):
         )
 
         if match:
-            text_fields.append(match.group(1))
+            field_name = match.group(1)
+
+            if field_name.lower() == "textarea":
+                textareas.append(field_name)
+            else:
+                text_fields.append(field_name)
+
             continue
 
         # Чекбоксы
@@ -46,9 +56,7 @@ def beautify_instructions(instructions):
 
         # Выпадающие списки
         if "выпадающего списка" in instruction:
-            result.append(
-                "Выберите необходимые значения из выпадающих списков."
-            )
+            has_dropdowns = True
             continue
 
         result.append(instruction)
@@ -60,16 +68,26 @@ def beautify_instructions(instructions):
             + "."
         )
 
+    if textareas:
+        result.append(
+            "При необходимости укажите дополнительную информацию "
+            "в текстовом поле."
+        )
+
+    if has_dropdowns:
+        result.append(
+            "Выберите необходимые значения из выпадающих списков."
+        )
+
     if checkboxes:
         result.append(
-            "Подтвердите необходимые согласия: "
-            + ", ".join(checkboxes)
-            + "."
+            "Подтвердите необходимые согласия "
+            "и выберите дополнительные параметры формы."
         )
 
     for button in buttons:
         result.append(
-            f'Нажмите кнопку "{button}" для завершения действия.'
+            f'Нажмите кнопку «{button}» для отправки данных.'
         )
 
     return result

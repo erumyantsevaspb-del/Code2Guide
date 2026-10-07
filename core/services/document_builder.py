@@ -14,7 +14,7 @@ def build_document_pages(project, instructions):
         "title": project.name,
         "subtitle": "Руководство пользователя",
         "version": "1.0",
-        "generated_date": now().strftime("%-d %B %Y") if hasattr(now(), 'strftime') else "",
+        "generated_date": now().strftime("%d %B %Y").lstrip("0"),
         "generated_by": "Code2Guide",
     })
 
