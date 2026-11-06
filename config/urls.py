@@ -22,6 +22,16 @@ urlpatterns = [
         views.preview_document,
         name='preview_document',
     ),
+    path(
+        'project/<int:project_id>/pdf/',
+        views.pdf_print,
+        name='pdf_print',
+    ),
+    path(
+        'project/<int:project_id>/pdf/download/',
+        views.pdf_download,
+        name='pdf_download',
+    ),
 
 
     # API

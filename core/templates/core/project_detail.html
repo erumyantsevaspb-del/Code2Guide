@@ -63,6 +63,7 @@
                     <span id="successText">Генерация успешно завершена!</span>
                 </div>
                 <div class="text-sm text-gray-400 ml-7 mt-1">Затраченное время: <span id="finalTime">—</span></div>
+                <div id="screenshotSkipNote" class="hidden text-sm text-yellow-600 ml-7 mt-1"></div>
             </div>
             <div id="generationError" class="mt-4 hidden">
                 <div class="flex items-center gap-3 text-red-600">
@@ -113,11 +114,57 @@
         <!-- Настройки скриншотов -->
         <div class="bg-white rounded-lg border border-gray-200 p-6 mt-6">
             <h3 class="text-lg font-semibold text-[#1F2937] mb-1">Скриншоты</h3>
+            {% if is_nx_project %}
+            <p class="text-xs text-gray-500 mb-4">NX monorepo. Скриншоты создаются из ZIP автоматически. Укажите приложение ниже, если нужно — или используйте URL.</p>
+            {% else %}
             <p class="text-xs text-gray-500 mb-4">Необязательно. Если указать URL и данные для входа, скриншоты будут сделаны из реального приложения.</p>
+            {% endif %}
             <form id="screenshotSettingsForm">
                 <div class="space-y-3">
+
+                    {% if is_nx_project %}
+                    <!-- NX monorepo: выбор приложения -->
+                    {% if nx_detected_apps|length > 1 %}
                     <div>
-                        <label class="text-sm text-gray-600 block mb-1">URL приложения</label>
+                        <label class="text-sm text-gray-600 block mb-2">Для какой части проекта создать скриншоты?</label>
+                        <div class="space-y-1">
+                            {% for app in nx_detected_apps %}
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200">
+                                <input type="radio" name="nx_app_name" value="{{ app }}"
+                                       {% if project.nx_app_name == app %}checked{% endif %}
+                                       class="text-blue-600">
+                                <span class="text-sm font-medium text-gray-700">{{ app }}</span>
+                            </label>
+                            {% endfor %}
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200">
+                                <input type="radio" name="nx_app_name" value=""
+                                       {% if not project.nx_app_name %}checked{% endif %}
+                                       class="text-blue-600">
+                                <span class="text-sm text-gray-500">Выбрать автоматически</span>
+                            </label>
+                        </div>
+                    </div>
+                    {% elif nx_detected_apps|length == 1 %}
+                    <div class="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                        <i class="fas fa-check-circle text-green-500 text-sm"></i>
+                        <span class="text-sm text-gray-700">Приложение: <strong>{{ nx_detected_apps.0 }}</strong> — выбирается автоматически</span>
+                        <input type="hidden" name="nx_app_name" value="">
+                    </div>
+                    {% else %}
+                    <div>
+                        <label class="text-sm text-gray-600 block mb-1">NX-приложение (необязательно)</label>
+                        <input type="text" name="nx_app_name"
+                               placeholder="Например: shell"
+                               value="{{ project.nx_app_name }}"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                        <p class="text-xs text-gray-400 mt-1">Имя заполнится автоматически после первой генерации.</p>
+                    </div>
+                    {% endif %}
+                    <hr class="border-gray-100">
+                    {% endif %}
+
+                    <div>
+                        <label class="text-sm text-gray-600 block mb-1">URL приложения <span class="text-gray-400">(необязательно)</span></label>
                         <input type="url" name="app_url" placeholder="https://crm.example.com"
                                value="{{ project.app_url }}"
                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
@@ -219,6 +266,8 @@
                         <span class="status-{{ gen.status }}">
                             {% if gen.status == 'completed' %}
                                 <i class="fas fa-check-circle"></i> Завершено
+                            {% elif gen.status == 'completed_without_screenshots' %}
+                                <i class="fas fa-check-circle text-yellow-500"></i> <span class="text-yellow-700" title="{{ gen.error_message }}">Без скриншотов</span>
                             {% elif gen.status == 'processing' %}
                                 <i class="fas fa-spinner fa-pulse"></i> Скриншоты...
                             {% elif gen.status == 'failed' %}
@@ -229,7 +278,7 @@
                         </span>
                     </td>
                     <td>
-                        {% if gen.status == 'completed' %}
+                        {% if gen.status == 'completed' or gen.status == 'completed_without_screenshots' %}
                         <div class="flex items-center gap-2">
                             <button class="download-word-btn text-[#2563EB] hover:text-[#1d4ed8]" data-id="{{ gen.id }}">
                                 <i class="fas fa-file-word"></i>
@@ -440,9 +489,11 @@
         alert('Скачивание PDF документа (последняя версия)');
     });
     
-    // Опрашивает сервер пока не появятся скриншоты
+    // Опрашивает сервер пока не появится финальный статус.
+    // maxWait > SCREENSHOT_ZOMBIE_TIMEOUT (20 мин) — фронтенд никогда не остановится
+    // раньше, чем сервер выдаст финальный статус.
     async function pollScreenshots(generationId) {
-        const maxWait = 15 * 60 * 1000; // 15 минут
+        const maxWait = {{ frontend_poll_timeout_ms }}; // из core/constants.py FRONTEND_POLL_TIMEOUT_MS
         const pollStart = Date.now();
 
         const interval = setInterval(async () => {
@@ -454,10 +505,20 @@
                     const elapsed = stopTimer();
                     generationStatus.classList.add('hidden');
                     if (statusData.status === 'failed') {
-                        errorMessage.textContent = 'Скриншоты не удалось сделать. Инструкции доступны без скриншотов.';
+                        errorMessage.textContent = statusData.error_message || 'Неожиданная ошибка при создании скриншотов.';
                         generationError.classList.remove('hidden');
                         generateBtn.disabled = false;
+                    } else if (statusData.status === 'completed_without_screenshots') {
+                        // Инструкции готовы, скриншоты пропущены по ожидаемой причине
+                        const reason = statusData.error_message || 'Скриншоты недоступны.';
+                        successText.textContent = 'Инструкции готовы (без скриншотов)';
+                        finalTimeEl.textContent = elapsed;
+                        generationSuccess.classList.remove('hidden');
+                        // Показываем причину под блоком успеха
+                        const noteEl = document.getElementById('screenshotSkipNote');
+                        if (noteEl) { noteEl.textContent = reason; noteEl.classList.remove('hidden'); }
                     } else {
+                        successText.textContent = 'Генерация успешно завершена!';
                         finalTimeEl.textContent = elapsed;
                         generationSuccess.classList.remove('hidden');
                     }
@@ -466,10 +527,15 @@
                     clearInterval(interval);
                     stopTimer();
                     generationStatus.classList.add('hidden');
-                    errorMessage.textContent = 'Скриншоты не успели сгенерироваться за 15 минут. Инструкции доступны без скриншотов.';
+                    errorMessage.textContent = 'Генерация не завершилась за 22 минуты. Проверьте историю генераций.';
                     generationError.classList.remove('hidden');
                     generateBtn.disabled = false;
                     setTimeout(() => location.reload(), 3000);
+                } else {
+                    // Показываем прогресс-сообщение если сервер его записал
+                    if (statusData.error_message) {
+                        statusText.textContent = statusData.error_message;
+                    }
                 }
             } catch (e) {
                 // молча игнорируем ошибки сети

@@ -17,7 +17,7 @@
 
         <div class="card">
             <h3 style="margin-bottom: 24px;">Действия</h3>
-            <button class="btn-primary" style="width:100%;">Скачать PDF</button>
+            <a href="{% url 'pdf_download' project.id %}" class="btn-primary" style="width:100%; display:block; text-align:center; text-decoration:none;">Скачать PDF</a>
             <button class="btn-outline" style="width:100%; margin-top:12px;">Скачать Word</button>
         </div>
     </div>
@@ -113,10 +113,27 @@
                 {% endif %}
 
                 {% if current_page_data.screenshot %}
-                <div style="margin-bottom: 40px; border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden;">
-                    <img src="/media/{{ current_page_data.screenshot }}"
-                         alt="Скриншот {{ current_page_data.title }}"
-                         style="width: 100%; display: block;">
+                    {% if current_page_data.screenshot_status == "needs_review" %}
+                    <div style="margin-bottom: 40px;">
+                        <div style="border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden;">
+                            <img src="/media/{{ current_page_data.screenshot }}"
+                                 alt="Скриншот {{ current_page_data.title }}"
+                                 style="width: 100%; display: block;">
+                        </div>
+                        <div style="margin-top: 6px; padding: 8px 12px; background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 6px; font-size: 13px; color: #92400E;">
+                            ⚠ Проверьте соответствие страницы: {{ current_page_data.screenshot_reason }}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div style="margin-bottom: 40px; border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden;">
+                        <img src="/media/{{ current_page_data.screenshot }}"
+                             alt="Скриншот {{ current_page_data.title }}"
+                             style="width: 100%; display: block;">
+                    </div>
+                    {% endif %}
+                {% elif current_page_data.screenshot_status == "unavailable" %}
+                <div style="margin-bottom: 40px; padding: 16px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; color: #6B7280; font-size: 14px;">
+                    📷 Скриншот не добавлен: {{ current_page_data.screenshot_reason|default:"страница недоступна" }}
                 </div>
                 {% endif %}
 

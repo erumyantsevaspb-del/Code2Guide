@@ -67,6 +67,20 @@ class Project(models.Model):
         verbose_name="Пароль"
     )
 
+    nx_app_name = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="NX-приложение для скриншотов",
+        help_text="Имя NX-проекта (например: shell). Только для NX monorepo ZIP."
+    )
+
+    nx_detected_apps = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Обнаруженные NX-приложения",
+        help_text="Список имён NX-приложений с target serve, найденных в ZIP."
+    )
+
     # Связь с пользователем
     user = models.ForeignKey(
         User,
@@ -137,6 +151,7 @@ class Generation(models.Model):
         ('pending', 'В очереди'),
         ('processing', 'В процессе'),
         ('completed', 'Завершено'),
+        ('completed_without_screenshots', 'Завершено (без скриншотов)'),
         ('failed', 'Ошибка'),
     ]
 
@@ -180,7 +195,7 @@ class Generation(models.Model):
     )
 
     status = models.CharField(
-        max_length=20,
+        max_length=40,
         choices=STATUS_CHOICES,
         default='pending',
         verbose_name="Статус"
@@ -248,6 +263,7 @@ class Generation(models.Model):
             'pending': 'В очереди',
             'processing': 'В процессе',
             'completed': 'Завершено',
+            'completed_without_screenshots': 'Завершено (без скриншотов)',
             'failed': 'Ошибка',
         }
         return status_map.get(self.status, self.status)

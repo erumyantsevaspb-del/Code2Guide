@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ project.name }}_{{ algorithm_version }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            color: #111827;
+            background: white;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm 25mm;
+            margin: 0 auto;
+            page-break-after: always;
+            break-after: page;
+            background: white;
+        }
+
+        .page:last-child {
+            page-break-after: avoid;
+            break-after: avoid;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        @media print {
+            body { background: white; }
+            .no-print { display: none !important; }
+            .page { margin: 0; }
+        }
+
+        /* Cover */
+        .cover { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .cover-label { letter-spacing: 4px; color: #6B7280; margin-bottom: 40px; text-transform: uppercase; font-size: 12px; }
+        .cover-title { font-size: 36px; font-weight: 700; margin-bottom: 24px; }
+        .cover-subtitle { font-size: 18px; color: #6B7280; margin-bottom: 80px; }
+        .cover-meta { font-size: 13px; color: #374151; line-height: 1.8; }
+        .cover-footer { margin-top: 60px; color: #9CA3AF; font-size: 12px; }
+
+        /* Contents */
+        .contents-title { font-size: 28px; font-weight: 700; margin-bottom: 40px; }
+        .contents-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #E5E7EB; font-size: 14px; }
+
+        /* About */
+        .about-title { font-size: 28px; font-weight: 700; margin-bottom: 24px; }
+        .about-content { font-size: 14px; line-height: 1.8; color: #374151; white-space: pre-wrap; }
+
+        /* Instruction */
+        .instr-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; padding-bottom: 14px; border-bottom: 2px solid #E5E7EB; }
+        .instr-url { margin-bottom: 24px; color: #6B7280; font-size: 12px; }
+        .instr-screenshot { margin-bottom: 24px; border: 1px solid #E5E7EB; border-radius: 6px; overflow: hidden; }
+        .instr-screenshot img { width: 100%; display: block; }
+        .step { margin-bottom: 20px; }
+        .step-num { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+        .step-text { line-height: 1.7; color: #374151; }
+        .tip { margin-top: 32px; padding: 16px; background: #EFF6FF; border-left: 4px solid #2563EB; border-radius: 6px; }
+        .tip strong { display: block; margin-bottom: 6px; }
+    </style>
+</head>
+<body>
+
+{% for page in document_pages %}
+
+    {% if page.page_type == 'cover' %}
+    <div class="page cover">
+        <p class="cover-label">Руководство пользователя</p>
+        <h1 class="cover-title">{{ page.title }}</h1>
+        <p class="cover-subtitle">{{ page.subtitle }}</p>
+        <div class="cover-meta">
+            <p>Версия {{ page.version }}</p>
+            <p>{{ page.generated_date }}</p>
+        </div>
+        <div class="cover-footer">Сгенерировано автоматически сервисом <strong>{{ page.generated_by }}</strong></div>
+    </div>
+
+    {% elif page.page_type == 'about' %}
+    <div class="page">
+        <h1 class="about-title">{{ page.title }}</h1>
+        <div class="about-content">{{ page.content }}</div>
+    </div>
+
+    {% elif page.page_type == 'contents' %}
+    <div class="page">
+        <h1 class="contents-title">{{ page.title }}</h1>
+        {% for item in page.items %}
+        <div class="contents-item">
+            <span>{{ forloop.counter }}. {{ item.title }}</span>
+            <span>{{ item.page }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% elif page.page_type == 'instruction' %}
+    <div class="page">
+        <h1 class="instr-title">{{ page.title }}</h1>
+        {% if page.url %}<div class="instr-url">URL: {{ page.url }}</div>{% endif %}
+
+        {% if page.screenshot %}
+        <div class="instr-screenshot">
+            <img src="{{ media_root }}{{ page.screenshot }}" alt="Скриншот {{ page.title }}">
+        </div>
+        {% endif %}
+
+        {% for step in page.steps %}
+        <div class="step">
+            <div class="step-num">Шаг {{ forloop.counter }}</div>
+            <div class="step-text">{{ step }}</div>
+        </div>
+        {% endfor %}
+
+        {% if page.tip %}
+        <div class="tip">
+            <strong>Полезный совет</strong>
+            <p>{{ page.tip }}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+{% endfor %}
+
+
+</body>
+</html>
