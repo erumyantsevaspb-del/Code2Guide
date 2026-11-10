@@ -3,7 +3,7 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from .models import Project, Generation
@@ -898,6 +898,8 @@ def generate_instruction_api(request, project_id):
             shutil.rmtree(cleanup_path, ignore_errors=True)
             raise
 
+    except Http404:
+        raise  # Django сам вернёт 404
     except Exception as e:
         return JsonResponse({
             'error': str(e)
@@ -1029,7 +1031,10 @@ def preview_document(request, project_id):
     )
 
     total_pages = len(document_pages)
-    current_page = int(request.GET.get('page', 1))
+    try:
+        current_page = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        current_page = 1
     current_page = max(1, min(current_page, total_pages))
     current_page_data = document_pages[current_page - 1] if document_pages else {}
 
@@ -1108,6 +1113,8 @@ def pdf_download(request, project_id):
         request=request,
     )
 
+    html_path = None
+    pdf_path = None
     try:
         from playwright.sync_api import sync_playwright
 
@@ -1131,8 +1138,6 @@ def pdf_download(request, project_id):
             browser.close()
 
         pdf_bytes = Path(pdf_path).read_bytes()
-        Path(html_path).unlink(missing_ok=True)
-        Path(pdf_path).unlink(missing_ok=True)
 
         safe_name = project.name.replace(' ', '_').replace('/', '_')
         filename = f'{safe_name}_{algorithm_version}.pdf'
@@ -1143,3 +1148,9 @@ def pdf_download(request, project_id):
 
     except Exception as e:
         return HttpResponseServerError(f'Ошибка генерации PDF: {e}')
+
+    finally:
+        if html_path:
+            Path(html_path).unlink(missing_ok=True)
+        if pdf_path:
+            Path(pdf_path).unlink(missing_ok=True)
