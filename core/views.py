@@ -559,16 +559,16 @@ def _take_screenshots_background(generation_id, source_path, cleanup_path, route
             if _has_url and _has_creds:
                 # Внешний URL + авторизация
                 from core.services.screenshot_service import take_screenshots_with_credentials
-                screenshots = take_screenshots_with_credentials(app_url, app_login, app_password, routes, project_id)
+                screenshots = take_screenshots_with_credentials(app_url, app_login, app_password, routes, project_id, generation_id)
             elif _has_url:
                 # Внешний публичный URL без авторизации
                 from core.services.screenshot_service import take_screenshots_with_credentials
-                screenshots = take_screenshots_with_credentials(app_url, None, None, routes, project_id)
+                screenshots = take_screenshots_with_credentials(app_url, None, None, routes, project_id, generation_id)
             elif _resolved_nx_app:
                 from core.services.screenshot_service import take_nx_screenshots as _take_nx
-                screenshots = _take_nx(source_path, _resolved_nx_app, routes, project_id)
+                screenshots = _take_nx(source_path, _resolved_nx_app, routes, project_id, generation_id)
             else:
-                screenshots = take_route_screenshots(source_path, routes, project_id)
+                screenshots = take_route_screenshots(source_path, routes, project_id, generation_id)
         except Exception as e:
             screenshot_exc = e
             _diag_bg(f"Ошибка скриншотов: {e}")
@@ -973,12 +973,16 @@ def preview_document(request, project_id):
         user=request.user,
     )
 
-    generation = (
-        Generation.objects
-        .filter(project=project)
-        .order_by('-created_at')
-        .first()
-    )
+    generation_id_param = request.GET.get('generation')
+    if generation_id_param:
+        generation = get_object_or_404(Generation, id=generation_id_param, project=project)
+    else:
+        generation = (
+            Generation.objects
+            .filter(project=project)
+            .order_by('-created_at')
+            .first()
+        )
 
     instructions = (
         generation.instruction_data
@@ -1018,9 +1022,11 @@ def pdf_print(request, project_id):
     """Страница предпросмотра перед печатью (вспомогательная)"""
 
     project = get_object_or_404(Project, id=project_id, user=request.user)
-    generation = (
-        Generation.objects.filter(project=project).order_by('-created_at').first()
-    )
+    generation_id_param = request.GET.get('generation')
+    if generation_id_param:
+        generation = get_object_or_404(Generation, id=generation_id_param, project=project)
+    else:
+        generation = Generation.objects.filter(project=project).order_by('-created_at').first()
     instructions = generation.instruction_data if generation else []
     document_pages = build_document_pages(project, instructions)
     algorithm_version = generation.algorithm_version if generation else 'V0'
@@ -1046,9 +1052,11 @@ def pdf_download(request, project_id):
     from django.http import HttpResponse, HttpResponseServerError
 
     project = get_object_or_404(Project, id=project_id, user=request.user)
-    generation = (
-        Generation.objects.filter(project=project).order_by('-created_at').first()
-    )
+    generation_id_param = request.GET.get('generation')
+    if generation_id_param:
+        generation = get_object_or_404(Generation, id=generation_id_param, project=project)
+    else:
+        generation = Generation.objects.filter(project=project).order_by('-created_at').first()
     instructions = generation.instruction_data if generation else []
     document_pages = build_document_pages(project, instructions)
     algorithm_version = generation.algorithm_version if generation else 'V0'

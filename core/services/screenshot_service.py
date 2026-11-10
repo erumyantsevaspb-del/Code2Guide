@@ -511,7 +511,7 @@ def find_nx_serve_apps(source_path):
     return result
 
 
-def take_nx_screenshots(source_path, nx_app_name, routes, project_id):
+def take_nx_screenshots(source_path, nx_app_name, routes, project_id, generation_id=None):
     """
     Устанавливает зависимости, запускает 'npx nx serve <nx_app_name>' на свободном порту
     и делает скриншоты маршрутов через Playwright.
@@ -522,7 +522,8 @@ def take_nx_screenshots(source_path, nx_app_name, routes, project_id):
     """
     _log(f"[NX] take_nx_screenshots: app={nx_app_name}, project_id={project_id}")
 
-    screenshots_dir = Path(settings.MEDIA_ROOT) / 'screenshots' / str(project_id)
+    _gen_dir = str(generation_id) if generation_id else '_legacy'
+    screenshots_dir = Path(settings.MEDIA_ROOT) / 'screenshots' / str(project_id) / _gen_dir
     screenshots_dir.mkdir(parents=True, exist_ok=True)
 
     _install_dependencies(source_path)
@@ -608,7 +609,7 @@ def take_nx_screenshots(source_path, nx_app_name, routes, project_id):
 
                     page.screenshot(path=str(screenshot_path), full_page=False, timeout=15_000)
                     if screenshot_path.exists():
-                        rel_path = f"screenshots/{project_id}/{safe_name}.png"
+                        rel_path = f"screenshots/{project_id}/{_gen_dir}/{safe_name}.png"
                         screenshots[route_path] = {
                             'file': rel_path, 'status': status, 'reason': reason,
                             'final_url': final_url, 'title': meta['title'], 'h1': meta['h1'],
@@ -739,7 +740,7 @@ def _classify_screenshot(
     return ('ok', '')
 
 
-def take_route_screenshots(source_path, routes, project_id):
+def take_route_screenshots(source_path, routes, project_id, generation_id=None):
     """
     Запускает React-приложение и делает скриншоты каждого роута.
     Возвращает словарь {route_path: dict} с ключами:
@@ -749,7 +750,8 @@ def take_route_screenshots(source_path, routes, project_id):
     _log(f"[DIAG] take_route_screenshots started, project_id={project_id}")
     _t_trs = time.perf_counter()
 
-    screenshots_dir = Path(settings.MEDIA_ROOT) / 'screenshots' / str(project_id)
+    _gen_dir = str(generation_id) if generation_id else '_legacy'
+    screenshots_dir = Path(settings.MEDIA_ROOT) / 'screenshots' / str(project_id) / _gen_dir
     screenshots_dir.mkdir(parents=True, exist_ok=True)
 
     import json as _json
@@ -986,7 +988,7 @@ def take_route_screenshots(source_path, routes, project_id):
 
                     # Путь добавляем только если файл реально создан
                     if screenshot_path.exists():
-                        rel_path = f"screenshots/{project_id}/{safe_name}.png"
+                        rel_path = f"screenshots/{project_id}/{_gen_dir}/{safe_name}.png"
                         screenshots[route_path] = {
                             'file': rel_path,
                             'status': status,
@@ -1042,14 +1044,15 @@ def take_route_screenshots(source_path, routes, project_id):
     return screenshots
 
 
-def take_screenshots_with_credentials(app_url, app_login, app_password, routes, project_id):
+def take_screenshots_with_credentials(app_url, app_login, app_password, routes, project_id, generation_id=None):
     """
     Делает скриншоты реального приложения по URL с авторизацией.
     Возвращает {route_path: {file, status, reason, final_url, title, h1}}.
     Пропускает роуты, недоступные для данного пользователя (редирект на login/403).
     """
     screenshots = {}
-    screenshots_dir = Path(settings.MEDIA_ROOT) / 'screenshots' / str(project_id)
+    _gen_dir = str(generation_id) if generation_id else '_legacy'
+    screenshots_dir = Path(settings.MEDIA_ROOT) / 'screenshots' / str(project_id) / _gen_dir
     screenshots_dir.mkdir(parents=True, exist_ok=True)
 
     base_url = app_url.rstrip('/')
@@ -1134,7 +1137,7 @@ def take_screenshots_with_credentials(app_url, app_login, app_password, routes, 
 
                 page.screenshot(path=str(screenshot_path), full_page=False, timeout=15_000)
                 if screenshot_path.exists():
-                    rel_path = f"screenshots/{project_id}/{safe_name}.png"
+                    rel_path = f"screenshots/{project_id}/{_gen_dir}/{safe_name}.png"
                     screenshots[route_path] = {
                         'file': rel_path,
                         'status': status,
