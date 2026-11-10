@@ -42,7 +42,7 @@
         <div class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
             <h2 class="text-xl font-semibold text-[#1F2937] mb-4">Генерация инструкции</h2>
             <p class="text-gray-600 mb-4">
-                Запустите генерацию документации на основе последнего коммита в репозитории.
+                Запустите анализ исходников и создание пошаговых инструкций.
             </p>
             <button id="generateBtn"
                     class="bg-[#2563EB] text-white px-6 py-3 rounded-lg hover:bg-[#1d4ed8] transition-colors font-medium flex items-center gap-2">
@@ -243,7 +243,7 @@
             <thead>
                 <tr>
                     <th>Дата</th>
-                    <th>Коммит</th>
+                    <th>Описание</th>
                     <th>Компоненты</th>
                     <th>Время генерации</th>
                     <th>Статус</th>
@@ -255,7 +255,6 @@
                 <tr class="gen-row">
                     <td>{{ gen.created_at|date:"d E Y, H:i" }}</td>
                     <td>
-                        <code class="text-xs font-mono">{{ gen.commit_hash|slice:":8" }}</code>
                         <p class="text-sm text-gray-600">{{ gen.commit_message }}</p>
                     </td>
                     <td>{{ gen.components_count }}</td>

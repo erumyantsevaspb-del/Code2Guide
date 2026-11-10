@@ -94,9 +94,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# YandexGPT
-YANDEX_API_KEY = os.environ.get('YANDEX_API_KEY', '')
-YANDEX_FOLDER_ID = os.environ.get('YANDEX_FOLDER_ID', '')
+# Инструкции генерируются локальными правилами (AST + regex); LLM не используется.
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'

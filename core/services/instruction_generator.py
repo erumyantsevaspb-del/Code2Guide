@@ -2,9 +2,10 @@ import re
 from core.services.ast_parser import parse_jsx_content as _ast_parse
 
 
-def generate_instructions_with_yandex(route_name, path, jsx_content, backend_context=None, ast_override=None):
+def generate_instructions(route_name, path, jsx_content, backend_context=None, ast_override=None):
     """
     Генерирует пошаговую инструкцию на основе JSX-кода и контекста бэкенда.
+    Текст строится локальными правилами на основе AST/regex-разбора компонента.
 
     ast_override: если передан, использовать его вместо парсинга jsx_content.
     """

@@ -32,7 +32,7 @@ from .services.jsx_parser import (
     find_component_by_name,
 )
 
-from .services.instruction_generator import generate_instructions_with_yandex
+from .services.instruction_generator import generate_instructions
 from .services.backend_parser import parse_backend_zip, get_route_context
 from .services.document_builder import build_document_pages
 from .services.source_loader import prepare_project_source
@@ -701,8 +701,8 @@ def generate_instruction_api(request, project_id):
         generation = Generation.objects.create(
             project=project,
             user=request.user,
-            commit_hash=f"gen_{int(timezone.now().timestamp())}",
-            commit_message=f"Генерация инструкции для {project.name}",
+            commit_hash='',
+            commit_message=f"Анализ исходников: {project.name}",
             components_count=0,
             instruction_data=[],
             status='processing',
@@ -818,7 +818,7 @@ def generate_instruction_api(request, project_id):
                     merged_ast = None
 
                 route_be_context = get_route_context(backend_context, route_path, route_name)
-                steps = generate_instructions_with_yandex(
+                steps = generate_instructions(
                     route_name, route_path, jsx_content, route_be_context,
                     ast_override=merged_ast,
                 )

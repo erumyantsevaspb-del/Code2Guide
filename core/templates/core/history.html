@@ -34,7 +34,7 @@
             <tr class="border-b border-gray-200 bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
                 <th class="px-6 py-3 text-left font-medium">Дата и время</th>
                 <th class="px-6 py-3 text-left font-medium">Проект</th>
-                <th class="px-6 py-3 text-left font-medium">Коммит</th>
+                <th class="px-6 py-3 text-left font-medium">Описание</th>
                 <th class="px-6 py-3 text-left font-medium">Компоненты</th>
                 <th class="px-6 py-3 text-left font-medium">Время</th>
                 <th class="px-6 py-3 text-left font-medium">Статус</th>
@@ -55,7 +55,6 @@
                     {% endif %}
                 </td>
                 <td class="px-6 py-4">
-                    <span class="inline-block bg-blue-50 text-blue-700 text-xs font-mono px-2 py-0.5 rounded mb-1">{{ gen.commit_hash|slice:":7" }}</span>
                     <p class="text-gray-500 text-xs">{{ gen.commit_message }}</p>
                 </td>
                 <td class="px-6 py-4 text-gray-700">
