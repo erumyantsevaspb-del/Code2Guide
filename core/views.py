@@ -902,6 +902,8 @@ def extension_screenshot_api(request):
             item_path = item.get('path', '').rstrip('/')
             if item_path == path or (not item_path and path == '/'):
                 item['screenshot'] = rel_path
+                item['screenshot_status'] = 'ok'
+                item.pop('screenshot_reason', None)
                 updated = True
         if updated:
             last_gen.save()

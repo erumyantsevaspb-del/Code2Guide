@@ -29,20 +29,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     saveBtn.textContent = 'Проверяем...';
     saveBtn.disabled = true;
 
+    let pingOk = false;
     try {
       const fd = new FormData();
       fd.append('token', t);
-      fd.append('url', window.location.href || 'ping');
+      fd.append('url', 'ping');
       const res = await fetch(`${s}/api/extension/ping/`, { method: 'POST', body: fd });
-      // 403 = сервер есть но токен неверный, 404 = нет endpoint (старая версия)
       if (res.status === 403) {
         showStatus(statusMsg, 'Неверный токен', 'error');
         saveBtn.textContent = 'Подключить'; saveBtn.disabled = false;
         return;
       }
+      if (res.status === 404) {
+        showStatus(statusMsg, 'Endpoint не найден — проверьте URL сервера', 'error');
+        saveBtn.textContent = 'Подключить'; saveBtn.disabled = false;
+        return;
+      }
+      if (!res.ok) {
+        showStatus(statusMsg, `Ошибка сервера: ${res.status}`, 'error');
+        saveBtn.textContent = 'Подключить'; saveBtn.disabled = false;
+        return;
+      }
+      pingOk = true;
     } catch (e) {
-      // Сервер недоступен — сохраняем всё равно, покажем ошибку при отправке
+      showStatus(statusMsg, 'Сервер недоступен', 'error');
+      saveBtn.textContent = 'Подключить'; saveBtn.disabled = false;
+      return;
     }
+    if (!pingOk) return;
 
     await chrome.storage.local.set({ token: t, server: s, count: 0, tracking: true });
     chrome.runtime.sendMessage({ type: 'SET_CONFIG', token: t, server: s });

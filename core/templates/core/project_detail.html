@@ -207,15 +207,19 @@
                     <span class="text-sm text-gray-500">Ветка:</span>
                     <p class="text-sm font-mono">{{ project.branch|default:"main" }}</p>
                 </div>
-                <div>
-                    <span class="text-sm text-gray-500">Статус интеграции:</span>
-                    <div class="flex items-center gap-2 mt-1">
-                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span class="text-sm">Подключено</span>
-                    </div>
-                </div>
             </div>
         </div>
+
+        {% if project.api_token %}
+        <div class="bg-white rounded-lg border border-gray-200 p-6 mt-6">
+            <h3 class="text-lg font-semibold text-[#1F2937] mb-3">Токен расширения Chrome</h3>
+            <p class="text-xs text-gray-500 mb-3">Вставьте этот токен в настройки расширения Code2Guide.</p>
+            <div class="flex items-center gap-2">
+                <code id="apiToken" class="flex-1 font-mono text-xs bg-gray-100 rounded px-3 py-2 break-all select-all">{{ project.api_token }}</code>
+                <button onclick="copyToken()" class="shrink-0 text-xs px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Скопировать</button>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 
