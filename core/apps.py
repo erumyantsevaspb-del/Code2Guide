@@ -23,10 +23,12 @@ class CoreConfig(AppConfig):
         # manage.py runserver запускает два процесса (авторелоадер):
         #   родительский: RUN_MAIN не установлен → пропускаем
         #   дочерний:     RUN_MAIN=true          → запускаем
+        # --noreload: один процесс, RUN_MAIN не установлен → запускаем.
         # Production (gunicorn/uWSGI): RUN_MAIN не установлен, команда не runserver → запускаем.
         argv = sys.argv
         is_runserver = len(argv) >= 2 and argv[1] == 'runserver'
-        if is_runserver and run_main != 'true':
+        is_noreload = '--noreload' in argv
+        if is_runserver and run_main != 'true' and not is_noreload:
             return
         # Родительский процесс авторелоадера для нестандартных команд — не бывает,
         # но на всякий случай: RUN_MAIN=false явно → пропускаем.
