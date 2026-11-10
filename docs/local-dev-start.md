@@ -18,7 +18,8 @@ Django по умолчанию пишет логи в консоль cmd.exe.
 scripts\start_dev.bat
 ```
 
-Окно консоли можно свернуть или закрыть — генерация продолжится.
+Окно консоли можно **свернуть** — генерация продолжится.
+Закрывать окно нельзя: это остановит сервер.
 
 ## Диагностика
 
@@ -46,5 +47,5 @@ media\screenshots\<project_id>\gen_<generation_id>.log
 указав в поле «Программа»:
 
 ```
-C:\Users\Lena\Code2Guide\scripts\start_dev.bat
+<путь до проекта>\scripts\start_dev.bat
 ```

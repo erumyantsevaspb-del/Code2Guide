@@ -1,5 +1,5 @@
 @echo off
-cd /d C:\Users\Lena\Code2Guide
+cd /d "%~dp0.."
 
 if exist venv\Scripts\activate.bat (
     call venv\Scripts\activate.bat

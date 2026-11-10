@@ -1,4 +1,24 @@
+# Python >= 3.12 required
+
+# --- Core ---
 asgiref==3.11.1
 Django==6.0.3
 sqlparse==0.5.5
 tzdata==2025.3
+
+# --- Media ---
+Pillow==12.1.1
+
+# --- Screenshots & PDF ---
+playwright==1.60.0
+# После установки: python -m playwright install chromium
+
+# --- AST parsing ---
+tree-sitter==0.26.0
+tree-sitter-javascript==0.25.0
+tree-sitter-typescript==0.23.2
+typing_extensions==4.15.0
+
+# --- Dev / Tests ---
+pytest==9.1.1
+pytest-django==4.14.0
