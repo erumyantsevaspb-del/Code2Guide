@@ -1062,15 +1062,18 @@ def take_screenshots_with_credentials(app_url, app_login, app_password, routes, 
         browser = p.chromium.launch()
         page = browser.new_page(viewport={'width': 1280, 'height': 800})
 
-        # Авторизация
-        _log(f"Авторизуемся на {base_url}...")
-        login_ok = _do_login(page, base_url, app_login, app_password)
-        if not login_ok:
-            browser.close()
-            raise RuntimeError(
-                f"Авторизация не выполнена: не удалось найти или заполнить форму входа на {base_url}. "
-                f"Проверьте app_url, логин и пароль в настройках проекта."
-            )
+        # Авторизация — только если заданы оба поля
+        if app_login and app_password:
+            _log(f"Авторизуемся на {base_url}...")
+            login_ok = _do_login(page, base_url, app_login, app_password)
+            if not login_ok:
+                browser.close()
+                raise RuntimeError(
+                    f"Авторизация не выполнена: не удалось найти или заполнить форму входа на {base_url}. "
+                    f"Проверьте app_url, логин и пароль в настройках проекта."
+                )
+        else:
+            _log(f"Внешний URL без авторизации: {base_url}")
 
         # Скриншоты каждого роута
         for route in routes:

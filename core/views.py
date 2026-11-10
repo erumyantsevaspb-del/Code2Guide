@@ -464,13 +464,20 @@ def _take_screenshots_background(generation_id, source_path, cleanup_path, route
     screenshots = {}
 
     # Определяем режим скриншотов.
-    # Приоритет: 1) внешний URL, 2) NX-приложение, 3) локальный запуск обычного React.
+    # Приоритет: 1) внешний URL (с авторизацией или без), 2) NX, 3) локальный React.
     _early_skip_reason = None
     _resolved_nx_app = None  # имя NX-приложения, которое будем запускать
 
-    # Детектируем NX monorepo по корневому package.json
+    # Частично заполненные credentials — предупреждаем
+    _has_url = bool(app_url)
+    _has_creds = bool(app_login and app_password)
+    _has_partial_creds = bool((app_login and not app_password) or (app_password and not app_login))
+    if _has_partial_creds:
+        _diag_bg("Предупреждение: логин или пароль не заполнены — авторизация пропущена")
+
+    # Детектируем NX monorepo по корневому package.json — только если нет внешнего URL
     _is_nx_bg = False
-    if source_path and not (app_url and app_login and app_password):
+    if source_path and not _has_url:
         try:
             import json as _json_bg
             _pkg = _Path_bg(source_path) / 'package.json'
@@ -482,7 +489,7 @@ def _take_screenshots_background(generation_id, source_path, cleanup_path, route
         except Exception:
             pass
 
-    if _is_nx_bg and not (app_url and app_login and app_password):
+    if _is_nx_bg and not _has_url:
         # NX: определяем какое приложение запускать
         from core.services.screenshot_service import find_nx_serve_apps as _find_nx_apps
         _nx_apps = _find_nx_apps(source_path)
@@ -549,9 +556,14 @@ def _take_screenshots_background(generation_id, source_path, cleanup_path, route
         _diag_bg(f"Ранний выход (NX): {_early_skip_reason}")
     else:
         try:
-            if app_url and app_login and app_password:
+            if _has_url and _has_creds:
+                # Внешний URL + авторизация
                 from core.services.screenshot_service import take_screenshots_with_credentials
                 screenshots = take_screenshots_with_credentials(app_url, app_login, app_password, routes, project_id)
+            elif _has_url:
+                # Внешний публичный URL без авторизации
+                from core.services.screenshot_service import take_screenshots_with_credentials
+                screenshots = take_screenshots_with_credentials(app_url, None, None, routes, project_id)
             elif _resolved_nx_app:
                 from core.services.screenshot_service import take_nx_screenshots as _take_nx
                 screenshots = _take_nx(source_path, _resolved_nx_app, routes, project_id)
