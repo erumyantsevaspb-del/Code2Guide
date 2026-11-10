@@ -267,16 +267,21 @@ def update_profile_api(request):
     """API для обновления профиля"""
     try:
         user = request.user
-        user.first_name = request.POST.get('first_name', user.first_name)
-        user.last_name = request.POST.get('last_name', user.last_name)
-        user.email = request.POST.get('email', user.email)
 
-        # Если нужно сохранить дополнительные поля
-        if hasattr(user, 'profile'):
-            user.profile.phone = request.POST.get('phone', '')
-            user.profile.company = request.POST.get('company', '')
-            user.profile.bio = request.POST.get('bio', '')
-            user.profile.save()
+        # Обновляем только переданные поля, не затираем остальные
+        if 'first_name' in request.POST:
+            user.first_name = request.POST['first_name'].strip()
+        if 'last_name' in request.POST:
+            user.last_name = request.POST['last_name'].strip()
+
+        # Дополнительные поля модели User (если есть)
+        for field in ('phone', 'company', 'position'):
+            if field in request.POST and hasattr(user, field):
+                setattr(user, field, request.POST[field].strip())
+
+        # Аватар
+        if 'avatar' in request.FILES and hasattr(user, 'avatar'):
+            user.avatar = request.FILES['avatar']
 
         user.save()
         return JsonResponse({'success': True})
