@@ -578,6 +578,10 @@ def _take_screenshots_background(generation_id, source_path, cleanup_path, route
     # При неудаче БД запись остаётся в 'processing' — это честно и видно в логах.
     try:
         generation = Generation.objects.get(id=generation_id)
+        # Watchdog мог уже перевести задание в failed — не перезаписываем его решение.
+        if generation.status == 'failed':
+            _diag_bg("Watchdog уже завершил задание как failed — пропускаем обновление статуса")
+            return
 
         if screenshot_exc is None and screenshots:
             # Скриншоты получены (словарь {path: {file, status, reason, ...}})
@@ -684,8 +688,27 @@ def generate_instruction_api(request, project_id):
             user=request.user
         )
 
+        # Fix: не допускаем параллельных генераций для одного проекта
+        if Generation.objects.filter(project=project, status='processing').exists():
+            return JsonResponse({'error': 'Генерация уже выполняется для этого проекта'}, status=409)
+
         # Получаем исходники (ZIP или репозиторий)
         source_path, cleanup_path = prepare_project_source(project)
+
+        # Fix: создаём Generation до начала анализа, чтобы ошибки парсинга
+        # попадали в историю как failed, а не терялись без следа.
+        exp_meta = get_experiment_meta()
+        generation = Generation.objects.create(
+            project=project,
+            user=request.user,
+            commit_hash=f"gen_{int(timezone.now().timestamp())}",
+            commit_message=f"Генерация инструкции для {project.name}",
+            components_count=0,
+            instruction_data=[],
+            status='processing',
+            algorithm_version=exp_meta['algorithm_version'],
+            code_version=exp_meta['code_version'],
+        )
 
         try:
             # Для NX monorepo: анализируем только выбранное приложение
@@ -809,22 +832,16 @@ def generate_instruction_api(request, project_id):
                     'component_source': component_source,
                 })
 
-            exp_meta = get_experiment_meta()
-            generation = Generation.objects.create(
-                project=project,
-                user=request.user,
-                commit_hash=f"gen_{int(timezone.now().timestamp())}",
-                commit_message=f"Генерация инструкции для {project.name}",
-                components_count=len(instruction_data),
-                instruction_data=instruction_data,
-                status='processing',
-                algorithm_version=exp_meta['algorithm_version'],
-                code_version=exp_meta['code_version'],
-                error_message="Маршруты обнаружены приблизительно (эвристика по структуре файлов)" if approximate_routes else '',
+            generation.instruction_data = instruction_data
+            generation.components_count = len(instruction_data)
+            generation.error_message = (
+                "Маршруты обнаружены приблизительно (эвристика по структуре файлов)"
+                if approximate_routes else ''
             )
+            generation.save(update_fields=['instruction_data', 'components_count', 'error_message'])
 
-            project.instructions_count = len(instruction_data)
-            project.save()
+            # Fix: обновляем только одно поле, не перезаписывая параллельные изменения настроек
+            Project.objects.filter(pk=project.pk).update(instructions_count=len(instruction_data))
 
             # Запускаем скриншоты в фоне
             import threading
@@ -866,7 +883,18 @@ def generate_instruction_api(request, project_id):
                 }
             })
 
-        except Exception:
+        except Exception as analysis_exc:
+            # Fix: фиксируем ошибку в уже созданной Generation, чтобы она была видна в истории
+            try:
+                generation.status = 'failed'
+                generation.error_message = str(analysis_exc)
+                generation.completed_at = timezone.now()
+                generation.duration_seconds = int(
+                    (generation.completed_at - generation.created_at).total_seconds()
+                )
+                generation.save()
+            except Exception:
+                pass
             shutil.rmtree(cleanup_path, ignore_errors=True)
             raise
 
