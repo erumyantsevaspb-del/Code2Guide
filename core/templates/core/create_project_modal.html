@@ -417,14 +417,16 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('projectNameError').classList.add('hidden');
         }
 
-        if (!reactArchiveInput || !reactArchiveInput.files[0]) {
+        const repoUrl = repoUrlInput ? repoUrlInput.value.trim() : '';
+        const hasZip = reactArchiveInput && reactArchiveInput.files[0];
+        if (!hasZip && !repoUrl) {
             document.getElementById('zipError').classList.remove('hidden');
+            document.getElementById('zipError').querySelector('span').textContent = 'Загрузите ZIP-архив или укажите URL репозитория';
             isValid = false;
         } else {
             document.getElementById('zipError').classList.add('hidden');
         }
 
-        const repoUrl = repoUrlInput ? repoUrlInput.value.trim() : '';
         const githubPattern = /^https:\/\/github\.com\/[\w-]+\/[\w.-]+$/;
         if (repoUrl && !githubPattern.test(repoUrl)) {
             repoUrlInput.classList.add('border-red-500');

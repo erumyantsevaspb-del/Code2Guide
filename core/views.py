@@ -212,6 +212,22 @@ def create_project_api(request):
                 status=400
             )
 
+        if react_archive:
+            import zipfile as _zf
+            if not react_archive.name.lower().endswith('.zip'):
+                return JsonResponse(
+                    {'error': 'Файл должен быть ZIP-архивом (.zip)'},
+                    status=400
+                )
+            try:
+                if not _zf.is_zipfile(react_archive):
+                    return JsonResponse(
+                        {'error': 'Загруженный файл не является корректным ZIP-архивом'},
+                        status=400
+                    )
+            finally:
+                react_archive.seek(0)
+
         import secrets
         business_context = request.POST.get('business_context', '').strip()
 
@@ -241,7 +257,8 @@ def create_project_api(request):
         })
 
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        _views_logger.error(f"create_project_api error: {e}", exc_info=True)
+        return JsonResponse({'error': 'Внутренняя ошибка сервера'}, status=500)
 
 
 @login_required
