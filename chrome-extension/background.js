@@ -19,15 +19,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     config.tracking = msg.enabled;
   }
   if (msg.type === 'CAPTURE_NOW') {
-    captureTab(msg.tabId, msg.url).then(result => sendResponse(result));
+    captureTab(msg.tabId, msg.url, { mustBeActive: false }).then(result => sendResponse(result));
     return true; // async
   }
   if (msg.type === 'SPA_NAVIGATION') {
     if (!config.token || !config.tracking) return;
     if (msg.url === lastCapturedUrl) return;
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) captureTab(tabs[0].id, msg.url);
-    });
+    // Снимаем только активную вкладку, отправившую сообщение
+    if (sender.tab && sender.tab.id) {
+      captureTab(sender.tab.id, msg.url, { mustBeActive: true });
+    }
   }
 });
 
@@ -40,20 +41,56 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
   // Небольшая пауза чтобы страница успела отрендериться
   setTimeout(() => {
-    captureTab(tabId, tab.url);
+    captureTab(tabId, tab.url, { mustBeActive: true });
   }, 1500);
 });
 
-async function captureTab(tabId, url) {
+// captureTab снимает вкладку tabId.
+// mustBeActive=true: снимает только если вкладка активна в своём окне (tab.active + URL совпадает).
+// mustBeActive=false: активирует вкладку на время снимка, затем возвращает фокус.
+async function captureTab(tabId, url, { mustBeActive = true } = {}) {
   if (!config.token || !config.server) {
     return { success: false, error: 'Не настроен токен' };
   }
 
   try {
-    // Делаем скриншот активной вкладки
-    const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
+    // Получаем актуальное состояние вкладки
+    const tab = await chrome.tabs.get(tabId);
 
-    // Конвертируем dataUrl в Blob
+    // Проверяем, что URL вкладки совпадает с ожидаемым
+    const tabUrl = tab.url || '';
+    if (tabUrl !== url && tabUrl.split('?')[0] !== url.split('?')[0]) {
+      return { success: false, error: 'URL вкладки изменился' };
+    }
+
+    if (mustBeActive && !tab.active) {
+      // Вкладка фоновая — не снимаем во избежание подмены
+      return { success: false, error: 'Вкладка не активна' };
+    }
+
+    let prevTabId = null;
+    if (!tab.active) {
+      // Запоминаем текущую активную вкладку, чтобы вернуть фокус
+      const [activeTab] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
+      prevTabId = activeTab ? activeTab.id : null;
+      await chrome.tabs.update(tabId, { active: true });
+      // Даём время на перерисовку
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+
+    // Возвращаем фокус предыдущей вкладке
+    if (prevTabId !== null) {
+      await chrome.tabs.update(prevTabId, { active: true });
+    }
+
+    // Финальная проверка: URL вкладки не изменился пока делали снимок
+    const tabAfter = await chrome.tabs.get(tabId);
+    if (tabAfter.url !== tab.url) {
+      return { success: false, error: 'URL изменился во время снимка' };
+    }
+
     const blob = dataUrlToBlob(dataUrl);
 
     const fd = new FormData();
@@ -68,12 +105,10 @@ async function captureTab(tabId, url) {
 
     if (res.ok) {
       lastCapturedUrl = url;
-      // Увеличиваем счётчик
       const { count } = await chrome.storage.local.get('count');
       await chrome.storage.local.set({ count: (count || 0) + 1 });
       return { success: true };
     } else {
-      const text = await res.text();
       return { success: false, error: `Сервер: ${res.status}` };
     }
   } catch (e) {
