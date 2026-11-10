@@ -59,26 +59,41 @@ def _find_config_files(repo: Path) -> list:
     return found
 
 
+def _strip_jsonc(raw: str) -> str:
+    """Убирает // комментарии и trailing commas из JSONC/tsconfig."""
+    # Удаляем // комментарии вне строк
+    raw = re.sub(r'//[^\n]*', '', raw)
+    # Удаляем /* ... */ комментарии
+    raw = re.sub(r'/\*.*?\*/', '', raw, flags=re.DOTALL)
+    # Удаляем trailing commas перед } или ]
+    raw = re.sub(r',\s*([}\]])', r'\1', raw)
+    return raw
+
+
 def _read_tsconfig_aliases(repo: Path) -> dict:
-    """Читает tsconfig.base.json и возвращает {alias: path_without_extension}."""
+    """Читает tsconfig.base.json / tsconfig.json и возвращает {alias: path_without_extension}."""
     aliases = {}
     for tsconfig_name in ('tsconfig.base.json', 'tsconfig.json'):
         tsconfig = repo / tsconfig_name
-        if tsconfig.exists():
-            try:
-                raw = tsconfig.read_text(encoding='utf-8', errors='ignore')
-                raw = re.sub(r'//[^\n]*', '', raw)
-                data = json.loads(raw)
-                paths = (data.get('compilerOptions') or {}).get('paths') or {}
-                for alias, targets in paths.items():
-                    clean_alias = alias.rstrip('/*')
-                    if targets and isinstance(targets, list):
-                        target = targets[0].rstrip('/*')
-                        # Убираем расширение (.ts/.tsx) — _find_barrel сам подберёт
-                        target = re.sub(r'\.(tsx?|jsx?)$', '', target)
-                        aliases[clean_alias] = target
-            except Exception:
-                pass
+        if not tsconfig.exists():
+            continue
+        try:
+            raw = tsconfig.read_text(encoding='utf-8', errors='ignore')
+            raw = _strip_jsonc(raw)
+            data = json.loads(raw)
+            paths = (data.get('compilerOptions') or {}).get('paths') or {}
+            for alias, targets in paths.items():
+                clean_alias = alias.rstrip('/*')
+                if targets and isinstance(targets, list):
+                    target = targets[0].rstrip('/*')
+                    target = re.sub(r'\.(tsx?|jsx?)$', '', target)
+                    aliases[clean_alias] = target
+            # Если нашли алиасы — прекращаем поиск
+            if aliases:
+                break
+        except Exception as e:
+            import logging as _log
+            _log.getLogger(__name__).warning("tsconfig parse error (%s): %s", tsconfig, e)
     return aliases
 
 

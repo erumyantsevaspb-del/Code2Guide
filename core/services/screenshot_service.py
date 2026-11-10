@@ -642,7 +642,8 @@ _404_TEXTS = (
     'this page could not be found', 'ничего не нашли',
 )
 
-_DYNAMIC_SEGMENT = __import__('re').compile(r':[a-zA-Z_][a-zA-Z0-9_]*')
+# Динамические сегменты: React Router (:id) и Next.js ([id], [...slug])
+_DYNAMIC_SEGMENT = __import__('re').compile(r':[a-zA-Z_][a-zA-Z0-9_]*|\[[^\]]+\]')
 
 
 def _has_dynamic_segments(path: str) -> bool:

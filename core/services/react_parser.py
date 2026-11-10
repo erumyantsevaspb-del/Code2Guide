@@ -174,31 +174,47 @@ def parse_nextjs_routes(source_path):
 
     app_dir = min(app_dirs, key=lambda p: len(p.parts))
 
-    for page_file in app_dir.rglob('page.tsx'):
+    seen_paths = set()
+    for page_file in sorted(app_dir.rglob('page.*')):
+        if page_file.suffix not in ('.tsx', '.jsx', '.ts', '.js'):
+            continue
         rel = page_file.parent.relative_to(app_dir)
         parts = rel.parts
 
-        # Пропускаем служебные сегменты Next.js
+        has_dynamic = False
         clean_parts = []
         for p in parts:
             if p.startswith('(') and p.endswith(')'):
                 continue  # группировка: (routes), (auth) и т.д.
             if p.startswith('[') and p.endswith(']'):
-                continue  # динамические сегменты: [locale], [id]
-            clean_parts.append(p)
+                has_dynamic = True
+                clean_parts.append(p)  # сохраняем как есть: [id]
+            else:
+                clean_parts.append(p)
 
         if not clean_parts:
             route_path = '/'
             name = 'Главная'
         else:
             route_path = '/' + '/'.join(clean_parts)
-            raw_name = clean_parts[-1].replace('-', ' ').replace('_', ' ')
+            # Имя берём из последнего статического сегмента
+            static_parts = [p for p in clean_parts if not (p.startswith('[') and p.endswith(']'))]
+            label = (static_parts[-1] if static_parts else clean_parts[-1])
+            raw_name = label.replace('-', ' ').replace('_', ' ')
             name = _translate_route_name(raw_name)
+
+        if route_path in seen_paths:
+            continue
+        seen_paths.add(route_path)
 
         routes.append({
             'path': route_path,
             'name': name,
-            'component': ''.join(p.title() for p in clean_parts) or 'Home',
+            'component': ''.join(
+                p.strip('[]').title() for p in clean_parts
+            ) or 'Home',
+            # Скриншот динамической страницы без параметра сделать нельзя
+            '_dynamic': has_dynamic,
         })
 
     return routes
