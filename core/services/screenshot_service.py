@@ -57,7 +57,24 @@ def _kill_process_tree(pid):
         else:
             import signal
             try:
-                os.kill(pid, signal.SIGTERM)
+                pgid = os.getpgid(pid)
+            except (ProcessLookupError, PermissionError):
+                return
+            try:
+                os.killpg(pgid, signal.SIGTERM)
+            except (ProcessLookupError, PermissionError):
+                pass
+            # Ждём до 5с, потом SIGKILL
+            import time
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                try:
+                    os.killpg(pgid, 0)  # проверяем, жива ли группа
+                except (ProcessLookupError, PermissionError):
+                    return  # группа завершилась
+                time.sleep(0.2)
+            try:
+                os.killpg(pgid, signal.SIGKILL)
             except (ProcessLookupError, PermissionError):
                 pass
     except Exception:
@@ -174,6 +191,9 @@ def _npm_run_step(cmd, cwd, timeout_sec, label):
     _CREATE_NO_WINDOW = 0x08000000 if sys.platform == 'win32' else 0
 
     _log(f"{label}: вызываем Popen")
+    # start_new_session=True на Unix помещает процесс в новую группу,
+    # чтобы _kill_process_tree мог послать SIGKILL всему дереву через killpg.
+    _new_session = sys.platform != 'win32'
     with open(log_path, 'wb') as log_f:
         proc = subprocess.Popen(
             cmd,
@@ -182,6 +202,7 @@ def _npm_run_step(cmd, cwd, timeout_sec, label):
             stderr=subprocess.STDOUT,  # объединяем stdout+stderr → файл
             stdin=subprocess.DEVNULL,
             creationflags=_CREATE_NO_WINDOW,
+            start_new_session=_new_session,
         )
     _log(f"{label}: pid={proc.pid}, ждём (таймаут {timeout_sec}с)...")
 
