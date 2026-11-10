@@ -591,8 +591,7 @@ def take_nx_screenshots(source_path, nx_app_name, routes, project_id):
 
                     time.sleep(1)
                     final_url = page.url
-                    login_keywords = ('login', 'sign-in', 'signin', 'auth', 'logout')
-                    if any(kw in final_url.lower() for kw in login_keywords):
+                    if _is_login_redirect(url, final_url):
                         _log(f"[NX] пропуск (login redirect): {route_name}")
                         continue
 
@@ -961,8 +960,7 @@ def take_route_screenshots(source_path, routes, project_id):
                     final_url = page.url
 
                     # Пропускаем если редирект на login/auth страницу
-                    login_keywords = ('login', 'sign-in', 'signin', 'auth', 'logout')
-                    if any(kw in final_url.lower() for kw in login_keywords):
+                    if _is_login_redirect(url, final_url):
                         _log(f"Пропуск (login redirect): {route_name} → {final_url}")
                         login_skipped.append(route_path)
                         continue
@@ -1055,7 +1053,6 @@ def take_screenshots_with_credentials(app_url, app_login, app_password, routes, 
     screenshots_dir.mkdir(parents=True, exist_ok=True)
 
     base_url = app_url.rstrip('/')
-    login_keywords = ('login', 'sign-in', 'signin', 'auth', 'logout', '403', 'forbidden', 'access-denied')
     auth_skipped = []
 
     with sync_playwright() as p:
@@ -1107,7 +1104,7 @@ def take_screenshots_with_credentials(app_url, app_login, app_password, routes, 
                 final_url = page.url
 
                 # Проверяем URL-редирект на страницу входа
-                if any(kw in final_url.lower() for kw in login_keywords):
+                if _is_login_redirect(url, final_url):
                     _log(f"Нет доступа (URL): {route_name} → {final_url}")
                     auth_skipped.append(route_path)
                     continue
@@ -1169,11 +1166,48 @@ def take_screenshots_with_credentials(app_url, app_login, app_password, routes, 
     return screenshots
 
 
-def _page_has_login_form(page) -> bool:
-    """Проверяет, отображается ли login-форма на текущей странице (inline auth без смены URL)."""
+_LOGIN_PATH_KEYWORDS = ('login', 'sign-in', 'signin', 'logout', '/auth/', '/auth$')
+_LOGIN_SUBMIT_TEXTS = ('войти', 'вход', 'sign in', 'log in', 'login', 'submit', 'continue')
+
+
+def _is_login_redirect(original_url: str, final_url: str) -> bool:
+    """
+    True если произошёл редирект на страницу авторизации.
+    Проверяет только PATH финального URL, а не hostname (избегает ложного
+    срабатывания на 'authors.example' или 'authentication-service.com').
+    """
     try:
-        pwd_field = page.locator('input[type="password"]').first
-        return pwd_field.is_visible(timeout=500)
+        from urllib.parse import urlparse
+        orig = urlparse(original_url)
+        final = urlparse(final_url)
+        # Если hostname изменился — возможно редирект на SSO/auth-сервис
+        if orig.netloc and final.netloc and orig.netloc != final.netloc:
+            final_path = (final.netloc + final.path).lower()
+        else:
+            final_path = final.path.lower()
+        return any(kw in final_path for kw in _LOGIN_PATH_KEYWORDS)
+    except Exception:
+        return False
+
+
+def _page_has_login_form(page) -> bool:
+    """
+    True если страница показывает форму входа (не форму смены пароля/настроек).
+    Критерии: видимый password-input И рядом submit-кнопка с текстом «войти»/«sign in».
+    Обычная страница настроек с полем пароля не считается формой входа.
+    """
+    try:
+        pwd_fields = page.locator('input[type="password"]')
+        if not pwd_fields.first.is_visible(timeout=500):
+            return False
+        # Ищем кнопку/submit с login-текстом в той же форме или на странице
+        for text in _LOGIN_SUBMIT_TEXTS:
+            btn = page.locator(
+                f'button:has-text("{text}"), input[type="submit"][value*="{text}"]'
+            ).first
+            if btn.is_visible(timeout=200):
+                return True
+        return False
     except Exception:
         return False
 
