@@ -55,7 +55,7 @@
                 <!-- ZIP архив проекта -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">
-                        ZIP-архив React проекта <span class="text-red-500">*</span>
+                        ZIP-архив React проекта <span class="text-gray-400 font-normal">(или URL репозитория выше)</span>
                     </label>
                     <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-5 bg-gray-50 hover:border-[#2563EB] transition-colors cursor-pointer" id="zipDropzone">
                         <input type="file" id="reactArchive" name="react_archive" accept=".zip,application/zip" class="hidden">
@@ -340,14 +340,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('repoUrlError').classList.add('hidden');
         }
 
-        if (notificationsCheckbox && notificationsCheckbox.checked && !document.getElementById('webhookUrl').value.trim()) {
-            document.getElementById('webhookError').classList.remove('hidden');
-            isValid = false;
-        } else {
-            const we = document.getElementById('webhookError');
-            if (we) we.classList.add('hidden');
-        }
-
         return isValid;
     }
 
@@ -363,16 +355,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const formData = new FormData();
             formData.append('name', projectNameInput.value);
-            formData.append('business_context', document.getElementById('businessContext').value);
+            formData.append('repo_url', repoUrlInput ? repoUrlInput.value : '');
             const backendArchiveInput = document.getElementById('backendArchive');
             if (backendArchiveInput && backendArchiveInput.files[0]) {
                 formData.append('backend_archive', backendArchiveInput.files[0]);
             }
-            formData.append('repo_url', repoUrlInput ? repoUrlInput.value : '');
-            formData.append('branch', document.getElementById('branch').value);
-            formData.append('auto_generate', document.getElementById('autoGenerate').checked ? 'on' : 'off');
-            formData.append('notifications', notificationsCheckbox.checked ? 'on' : 'off');
-            formData.append('webhook_url', document.getElementById('webhookUrl').value);
 
             if (reactArchiveInput && reactArchiveInput.files[0]) {
                 formData.append('react_archive', reactArchiveInput.files[0]);
