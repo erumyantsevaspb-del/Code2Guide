@@ -52,6 +52,8 @@ def build_document_pages(project, instructions):
             "url": instruction.get("path", ""),
             "steps": instruction["instructions"],
             "screenshot": instruction.get("screenshot"),
+            "screenshot_status": instruction.get("screenshot_status", ""),
+            "screenshot_reason": instruction.get("screenshot_reason", ""),
             "tip": "",
         })
 

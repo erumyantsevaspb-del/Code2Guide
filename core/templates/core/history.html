@@ -73,6 +73,10 @@
                         <span class="inline-flex items-center gap-1.5 text-green-700 font-medium">
                             <span class="w-2 h-2 rounded-full bg-green-500"></span> Успешно
                         </span>
+                    {% elif gen.status == 'completed_without_screenshots' %}
+                        <span class="inline-flex items-center gap-1.5 text-yellow-700 font-medium" title="{{ gen.error_message }}">
+                            <span class="w-2 h-2 rounded-full bg-yellow-400"></span> Без скриншотов
+                        </span>
                     {% elif gen.status == 'processing' %}
                         <span class="inline-flex items-center gap-1.5 text-blue-600 font-medium">
                             <span class="w-2 h-2 rounded-full bg-blue-500"></span> В процессе
@@ -88,8 +92,8 @@
                     {% endif %}
                 </td>
                 <td class="px-6 py-4">
-                    {% if gen.status == 'completed' and gen.project %}
-                        <a href="{% url 'preview_document' gen.project.id %}"
+                    {% if gen.project and gen.status == 'completed' or gen.project and gen.status == 'completed_without_screenshots' %}
+                        <a href="{% url 'preview_document' gen.project.id %}?generation={{ gen.id }}"
                            class="text-[#2563EB] hover:text-[#1d4ed8]" title="Предпросмотр">
                             <i class="fas fa-eye"></i>
                         </a>

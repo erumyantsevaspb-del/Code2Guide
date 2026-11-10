@@ -140,10 +140,13 @@ def test_nx_autoselect_single_app(tmp_path):
     root = _make_nx_project(tmp_path, {'shell': True})
 
     project = Project.objects.create(name='test_nx_single')
-    gen = Generation.objects.create(project=project, status='processing')
+    gen = Generation.objects.create(
+        project=project, status='processing',
+        instruction_data=[{'path': '/', 'name': 'home', 'instructions': []}],
+    )
 
     with patch('core.services.screenshot_service.find_nx_serve_apps', return_value=['shell']), \
-         patch('core.services.screenshot_service.take_nx_screenshots', return_value={'/': 'screenshots/1/index.png'}) as mock_nx, \
+         patch('core.services.screenshot_service.take_nx_screenshots', return_value={'/': {'file': 'screenshots/1/index.png', 'status': 'ok', 'reason': ''}}) as mock_nx, \
          patch('core.views.take_route_screenshots') as mock_local:
         # Импортируем _take_screenshots_background после patch
         from core.views import _take_screenshots_background
@@ -231,10 +234,13 @@ def test_nx_explicit_app_used(tmp_path):
     root = _make_nx_project(tmp_path, {'shell': True, 'auth': True})
 
     project = Project.objects.create(name='test_nx_explicit')
-    gen = Generation.objects.create(project=project, status='processing')
+    gen = Generation.objects.create(
+        project=project, status='processing',
+        instruction_data=[{'path': '/', 'name': 'home', 'instructions': []}],
+    )
 
     with patch('core.services.screenshot_service.find_nx_serve_apps', return_value=['auth', 'shell']), \
-         patch('core.services.screenshot_service.take_nx_screenshots', return_value={'/': 'screenshots/1/index.png'}) as mock_nx:
+         patch('core.services.screenshot_service.take_nx_screenshots', return_value={'/': {'file': 'screenshots/1/index.png', 'status': 'ok', 'reason': ''}}) as mock_nx:
         from core.views import _take_screenshots_background
         _take_screenshots_background(
             generation_id=gen.id,

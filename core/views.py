@@ -610,9 +610,14 @@ def _take_screenshots_background(generation_id, source_path, cleanup_path, route
                     item['screenshot_meta'] = {}
                     real_count += 1
             generation.instruction_data = data
-            generation.status = 'completed'
-            generation.error_message = ''
-            _diag_bg(f"Скриншоты готовы: {real_count} файлов из {len(screenshots)} маршрутов.")
+            if real_count > 0:
+                generation.status = 'completed'
+                generation.error_message = ''
+            else:
+                # Словарь непустой, но все file=None — все страницы недоступны
+                generation.status = 'completed_without_screenshots'
+                generation.error_message = 'Скриншоты недоступны: все маршруты вернули статус unavailable или needs_review без файла.'
+            _diag_bg(f"Скриншоты: {real_count} файлов из {len(screenshots)} маршрутов.")
         elif screenshot_exc is None and not screenshots:
             # take_route_screenshots вернул пустой словарь без исключения
             generation.status = 'completed_without_screenshots'
