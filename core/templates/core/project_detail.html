@@ -280,10 +280,7 @@
                     <td>
                         {% if gen.status == 'completed' or gen.status == 'completed_without_screenshots' %}
                         <div class="flex items-center gap-2">
-                            <button class="download-word-btn text-[#2563EB] hover:text-[#1d4ed8]" data-id="{{ gen.id }}">
-                                <i class="fas fa-file-word"></i>
-                            </button>
-                            <button class="download-pdf-btn text-red-600 hover:text-red-700" data-id="{{ gen.id }}">
+                            <button class="download-pdf-btn text-red-600 hover:text-red-700" data-id="{{ gen.id }}" data-project-id="{{ project.id }}" title="Скачать PDF">
                                 <i class="fas fa-file-pdf"></i>
                             </button>
                         </div>
@@ -464,29 +461,17 @@
         }
     });
     
-    // Скачивание Word
-    document.querySelectorAll('.download-word-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const genId = this.dataset.id;
-            alert(`Скачивание Word документа для генерации #${genId}`);
-        });
-    });
-    
-    // Скачивание PDF
+    // Скачивание PDF — переход на страницу генерации проекта
     document.querySelectorAll('.download-pdf-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            const genId = this.dataset.id;
-            alert(`Скачивание PDF документа для генерации #${genId}`);
+            const projectId = this.dataset.projectId || {{ project.id }};
+            window.location.href = `/project/${projectId}/pdf/download/`;
         });
     });
-    
-    // Кнопки скачивания в блоке "Готовая документация"
-    document.getElementById('downloadWordBtn')?.addEventListener('click', function() {
-        alert('Скачивание Word документа (последняя версия)');
-    });
-    
+
+    // Кнопка PDF в блоке "Готовая документация"
     document.getElementById('downloadPdfBtn')?.addEventListener('click', function() {
-        alert('Скачивание PDF документа (последняя версия)');
+        window.location.href = `/project/{{ project.id }}/pdf/download/`;
     });
     
     // Опрашивает сервер пока не появится финальный статус.
