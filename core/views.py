@@ -671,52 +671,60 @@ def generate_instruction_api(request, project_id):
         source_path, cleanup_path = prepare_project_source(project)
 
         try:
+            # Для NX monorepo: анализируем только выбранное приложение
+            nx_app = (project.nx_app_name or '').strip()
+            analysis_root = source_path
+            if nx_app:
+                _candidate = Path(source_path) / 'apps' / nx_app
+                if _candidate.is_dir():
+                    analysis_root = str(_candidate)
+
             # Парсим бэкенд если загружен
             backend_context = {}
             if project.backend_archive:
                 backend_zip_path = project.backend_archive.path
                 backend_context = parse_backend_zip(backend_zip_path)
 
-            routes_path = Path(source_path) / "src" / "routes.js"
+            routes_path = Path(analysis_root) / "src" / "routes.js"
 
             approximate_routes = False
             if routes_path.exists():
                 # CoreUI: src/routes.js
                 routes = parse_routes(routes_path)
                 imports = parse_component_imports(routes_path)
-            elif (Path(source_path) / 'next.config.js').exists() or (Path(source_path) / 'next.config.ts').exists() or (Path(source_path) / 'next.config.mjs').exists():
+            elif (Path(analysis_root) / 'next.config.js').exists() or (Path(analysis_root) / 'next.config.ts').exists() or (Path(analysis_root) / 'next.config.mjs').exists():
                 # Next.js: сначала App Router (app/page.tsx), затем Pages Router (pages/)
-                routes = parse_nextjs_routes(source_path)
+                routes = parse_nextjs_routes(analysis_root)
                 imports = {}
                 if not routes:
-                    routes = parse_nextjs_pages_routes(source_path)
+                    routes = parse_nextjs_pages_routes(analysis_root)
                 if not routes:
                     raise Exception("Next.js проект найден, но страницы не обнаружены (проверьте app/ или pages/)")
             else:
                 imports = {}
                 # RoutePath: кастомный TS роутер (включая computed keys)
-                routes = parse_routepath_routes(source_path)
+                routes = parse_routepath_routes(analysis_root)
                 if not routes:
                     # React Admin: ищем <Resource name="...">
-                    routes = parse_react_admin_routes(source_path)
+                    routes = parse_react_admin_routes(analysis_root)
                 if not routes:
                     # React Router v6 JSX + v4/v5 component= + react-router v7
-                    routes = parse_jsx_routes(source_path)
+                    routes = parse_jsx_routes(analysis_root)
                 if not routes:
                     # Распределённые *.router.tsx / *.router.ts файлы (e.g. React Admin Dashboard)
-                    routes = parse_distributed_router_files(source_path)
+                    routes = parse_distributed_router_files(analysis_root)
                 if not routes:
                     # createBrowserRouter([{path, Component/element}]) — React Router v6/v7
-                    routes = parse_browser_router_routes(source_path)
+                    routes = parse_browser_router_routes(analysis_root)
                 if not routes:
                     # Файлы конфигурации путей — paths.ts (e.g. Bulletproof React monorepo)
-                    routes = parse_paths_config_routes(source_path)
+                    routes = parse_paths_config_routes(analysis_root)
                 if not routes:
                     # remix-flat-routes: структура app/routes/ (React Router v7 / Remix)
-                    routes = parse_remix_flat_routes(source_path)
+                    routes = parse_remix_flat_routes(analysis_root)
                 if not routes:
                     # Эвристический фолбэк: src/pages/, src/views/, src/screens/
-                    routes = parse_component_pages_fallback(source_path)
+                    routes = parse_component_pages_fallback(analysis_root)
                     if routes:
                         approximate_routes = True
                 if not routes:
@@ -725,10 +733,15 @@ def generate_instruction_api(request, project_id):
             instruction_data = []
 
             # Pre-pass: router.config.tsx → точный маппинг route_key -> file
-            router_config_map = parse_router_config_full(source_path)
+            router_config_map = parse_router_config_full(analysis_root)
 
             # Загружаем alias_map один раз для traversal импортов
-            _traversal_alias_map = _read_tsconfig_aliases(Path(source_path))
+            # tsconfig читаем из корня выбранного приложения; для NX shared-алиасы
+            # определяются из workspace root (source_path), если в app-корне нет tsconfig
+            _app_tsconfig = Path(analysis_root) / 'tsconfig.json'
+            _traversal_alias_map = _read_tsconfig_aliases(
+                _app_tsconfig.parent if _app_tsconfig.exists() else Path(source_path)
+            )
 
             for route in routes:
                 route_name = route.get('name') or 'Раздел'
@@ -737,7 +750,7 @@ def generate_instruction_api(request, project_id):
 
                 # 1. Поиск по явному пути из imports (CoreUI и аналоги)
                 relative = imports.get(component_key, '')
-                component_file = find_component_file(source_path, relative) if relative else None
+                component_file = find_component_file(analysis_root, relative) if relative else None
 
                 # 2. Router config: точный маппинг через router.config.tsx
                 if not component_file and component_key:
@@ -747,7 +760,7 @@ def generate_instruction_api(request, project_id):
 
                 # 3. Если нет явного пути — ищем по имени компонента
                 if not component_file and component_key:
-                    component_file = find_component_by_name(source_path, component_key)
+                    component_file = find_component_by_name(analysis_root, component_key)
 
                 component_found = bool(component_file and Path(component_file).exists())
                 component_source = str(component_file) if component_found else ''
@@ -756,7 +769,7 @@ def generate_instruction_api(request, project_id):
                     jsx_content = Path(component_file).read_text(encoding='utf-8', errors='ignore')
                     merged_ast = collect_ui_from_component(
                         str(component_file),
-                        source_path,
+                        analysis_root,
                         alias_map=_traversal_alias_map,
                         max_depth=3,
                     )

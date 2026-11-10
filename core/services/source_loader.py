@@ -57,9 +57,15 @@ def safe_extract(archive, target_dir):
 
 
 def find_react_project_root(extracted_dir):
-    # Сначала ищем CoreUI-style routes.js
+    # NX monorepo: если есть nx.json или workspace.json в корне — возвращаем workspace root.
+    # Не залезаем в apps/, чтобы не выбрать случайное вложенное приложение.
+    if (extracted_dir / 'nx.json').exists() or (extracted_dir / 'workspace.json').exists():
+        return extracted_dir
+
+    # Сначала ищем CoreUI-style routes.js, но не внутри apps/ (NX-приложения)
     route_files = sorted(
-        extracted_dir.rglob("src/routes.js"),
+        (p for p in extracted_dir.rglob("src/routes.js")
+         if 'apps' not in p.relative_to(extracted_dir).parts[:1]),
         key=lambda path: len(path.parts),
     )
     if route_files:
@@ -70,8 +76,12 @@ def find_react_project_root(extracted_dir):
         extracted_dir.rglob("package.json"),
         key=lambda path: len(path.parts),
     )
-    # Фильтруем node_modules
-    package_files = [p for p in package_files if 'node_modules' not in p.parts]
+    # Фильтруем node_modules и вложенные NX-приложения
+    package_files = [
+        p for p in package_files
+        if 'node_modules' not in p.parts
+        and 'apps' not in p.relative_to(extracted_dir).parts[:1]
+    ]
     if package_files:
         return package_files[0].parent
 
