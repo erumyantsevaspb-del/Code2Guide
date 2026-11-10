@@ -1,2 +1,51 @@
+# ── Окружения ──────────────────────────────────────────────────
+.venv/
+venv/
+env/
 .env
-.env
+.env.*
+
+# ── Python ─────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# ── Django ─────────────────────────────────────────────────────
+db.sqlite3
+db.sqlite3-shm
+db.sqlite3-wal
+*.sqlite3
+
+# ── Загружаемые файлы и результаты генерации ───────────────────
+media/
+experiment_results/
+experiments/
+
+# ── Playwright ─────────────────────────────────────────────────
+playwright-report/
+test-results/
+
+# ── Тестовые кэши и отчёты ─────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# ── Node / npm ─────────────────────────────────────────────────
+node_modules/
+dist/
+build/
+.cache/
+
+# ── IDE ────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── macOS / Windows ────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
